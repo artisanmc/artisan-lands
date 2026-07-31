@@ -99,54 +99,39 @@ class FaultTolerantClaimVisualizationTest {
     }
 
     @Test
-    void preventsQueuedSynchronizationFromStartingAfterAnotherThreadOpensCircuit()
-            throws Exception {
+    void blockedRebuildDoesNotDelayConcurrentSynchronization() throws Exception {
         RecordingVisualization delegate = new RecordingVisualization();
-        CountDownLatch firstActionStarted = new CountDownLatch(1);
-        CountDownLatch allowFirstFailure = new CountDownLatch(1);
-        CountDownLatch secondAttemptStarted = new CountDownLatch(1);
-        CountDownLatch secondActionStarted = new CountDownLatch(1);
-        CountDownLatch allowSecondActionToComplete = new CountDownLatch(1);
-        delegate.syncChunkAction = () -> {
-            firstActionStarted.countDown();
-            await(allowFirstFailure);
-        };
-        delegate.syncChunkRuntimeFailure = new IllegalStateException("BlueMap unavailable");
-        delegate.syncLandAction = () -> {
-            secondActionStarted.countDown();
-            await(allowSecondActionToComplete);
+        CountDownLatch rebuildStarted = new CountDownLatch(1);
+        CountDownLatch releaseRebuild = new CountDownLatch(1);
+        CountDownLatch synchronizationAttempted = new CountDownLatch(1);
+        delegate.rebuildAction = () -> {
+            rebuildStarted.countDown();
+            await(releaseRebuild);
         };
         BlueMapFailureCircuitBreaker breaker =
                 new BlueMapFailureCircuitBreaker(loggerWith(new RecordingHandler()));
         FaultTolerantClaimVisualization visualization =
                 new FaultTolerantClaimVisualization(delegate, breaker);
-        Thread first = new Thread(() -> visualization.syncChunk(null));
-        Thread second = new Thread(() -> {
-            secondAttemptStarted.countDown();
-            visualization.syncLand(null);
+        Thread rebuild = new Thread(visualization::rebuild);
+        Thread synchronization = new Thread(() -> {
+            synchronizationAttempted.countDown();
+            visualization.syncChunk(null);
         });
 
         try {
-            first.start();
-            assertTrue(firstActionStarted.await(1, TimeUnit.SECONDS));
-            second.start();
-            assertTrue(secondAttemptStarted.await(1, TimeUnit.SECONDS));
+            rebuild.start();
+            assertTrue(rebuildStarted.await(1, TimeUnit.SECONDS));
 
-            awaitAdmissionOutcome(second, secondActionStarted);
-            assertEquals(Thread.State.BLOCKED, second.getState());
+            synchronization.start();
+            assertTrue(synchronizationAttempted.await(1, TimeUnit.SECONDS));
+            synchronization.join(250);
 
-            allowFirstFailure.countDown();
-            first.join(1_000);
-            second.join(1_000);
-            assertFalse(first.isAlive());
-            assertFalse(second.isAlive());
-            assertTrue(breaker.isOpen());
-            assertEquals(0, delegate.syncLandCalls);
+            assertFalse(synchronization.isAlive(), "syncChunk waited for rebuild");
+            assertEquals(1, delegate.syncChunkCalls);
         } finally {
-            allowFirstFailure.countDown();
-            allowSecondActionToComplete.countDown();
-            first.join(1_000);
-            second.join(1_000);
+            releaseRebuild.countDown();
+            rebuild.join(1_000);
+            synchronization.join(1_000);
         }
     }
 
@@ -264,23 +249,6 @@ class FaultTolerantClaimVisualizationTest {
         }
     }
 
-    private static void awaitAdmissionOutcome(
-            Thread worker,
-            CountDownLatch delegateActionStarted
-    ) throws InterruptedException {
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(1);
-        while (worker.getState() != Thread.State.BLOCKED
-                && delegateActionStarted.getCount() != 0
-                && System.nanoTime() < deadline) {
-            Thread.onSpinWait();
-        }
-        assertTrue(
-                worker.getState() == Thread.State.BLOCKED
-                        || delegateActionStarted.getCount() == 0,
-                "worker did not reach circuit admission"
-        );
-    }
-
     private static final class RecordingHandler extends Handler {
 
         private final List<LogRecord> records = new ArrayList<>();
@@ -307,6 +275,7 @@ class FaultTolerantClaimVisualizationTest {
         private int closeCalls;
         private Error syncChunkFailure;
         private RuntimeException rebuildFailure;
+        private Runnable rebuildAction;
         private RuntimeException syncChunkRuntimeFailure;
         private Runnable syncChunkAction;
         private Runnable syncLandAction;
@@ -315,6 +284,9 @@ class FaultTolerantClaimVisualizationTest {
         @Override
         public void rebuild() {
             rebuildCalls++;
+            if (rebuildAction != null) {
+                rebuildAction.run();
+            }
             if (rebuildFailure != null) {
                 throw rebuildFailure;
             }

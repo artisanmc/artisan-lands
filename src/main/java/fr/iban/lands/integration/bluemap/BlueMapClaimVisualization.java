@@ -85,20 +85,15 @@ public final class BlueMapClaimVisualization implements ClaimVisualization {
         };
         this.onDisable = api -> breaker.cleanup("BlueMap disable", () -> sink.detach(api));
         try {
-            listeners.onEnable(onEnable);
-        } finally {
-            registeringEnableListener.set(false);
-        }
-        try {
+            try {
+                listeners.onEnable(onEnable);
+            } finally {
+                registeringEnableListener.set(false);
+            }
             listeners.onDisable(onDisable);
         } catch (RuntimeException | LinkageError failure) {
-            try {
-                listeners.unregister(onEnable);
-            } catch (RuntimeException | LinkageError rollbackFailure) {
-                if (rollbackFailure != failure) {
-                    failure.addSuppressed(rollbackFailure);
-                }
-            }
+            rollbackListener(onDisable, failure);
+            rollbackListener(onEnable, failure);
             throw failure;
         }
     }
@@ -203,6 +198,19 @@ public final class BlueMapClaimVisualization implements ClaimVisualization {
         return new BlueMapFailureCircuitBreaker(
                 Logger.getLogger(BlueMapClaimVisualization.class.getName())
         );
+    }
+
+    private void rollbackListener(
+            Consumer<BlueMapAPI> listener,
+            Throwable registrationFailure
+    ) {
+        try {
+            listeners.unregister(listener);
+        } catch (RuntimeException | LinkageError rollbackFailure) {
+            if (rollbackFailure != registrationFailure) {
+                registrationFailure.addSuppressed(rollbackFailure);
+            }
+        }
     }
 
     private static String ownerLabel(LandsPlugin plugin, Land land) {

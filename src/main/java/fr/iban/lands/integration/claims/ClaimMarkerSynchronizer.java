@@ -20,6 +20,7 @@ public final class ClaimMarkerSynchronizer implements ClaimVisualization {
     private final ClaimMarkerFactory markerFactory;
     private final ClaimRegionGeometryBuilder geometryBuilder;
     private final AtomicBoolean dirty = new AtomicBoolean();
+    private final AtomicBoolean closed = new AtomicBoolean();
 
     public ClaimMarkerSynchronizer(
             String serverName,
@@ -36,31 +37,44 @@ public final class ClaimMarkerSynchronizer implements ClaimVisualization {
 
     @Override
     public synchronized void rebuild() {
+        if (closed.get()) {
+            return;
+        }
         dirty.set(false);
         publishSnapshot();
     }
 
     @Override
     public void syncChunk(SChunk chunk) {
-        if (serverName.equals(chunk.getServer())) {
+        if (!closed.get() && serverName.equals(chunk.getServer())) {
             dirty.set(true);
         }
     }
 
     @Override
     public void syncLand(Land land) {
-        dirty.set(true);
+        if (!closed.get()) {
+            dirty.set(true);
+        }
     }
 
     public synchronized void refreshIfDirty() {
+        if (closed.get()) {
+            return;
+        }
         if (dirty.compareAndSet(true, false)) {
             publishSnapshot();
         }
     }
 
     @Override
-    public synchronized void close() {
-        sink.close();
+    public void close() {
+        if (!closed.compareAndSet(false, true)) {
+            return;
+        }
+        synchronized (this) {
+            sink.close();
+        }
     }
 
     private void publishSnapshot() {

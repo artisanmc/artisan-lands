@@ -27,6 +27,7 @@ import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -215,6 +216,49 @@ class ClaimMarkerSynchronizerTest {
     }
 
     @Test
+    void closeStopsAdmissionBeforeBlockingSinkCleanup() throws Exception {
+        BlockingClose blocking = sink.blockNextClose();
+        Thread close = new Thread(synchronizer::close);
+
+        try {
+            close.start();
+            assertTrue(blocking.entered().await(1, TimeUnit.SECONDS));
+
+            assertDoesNotThrow(() -> {
+                synchronizer.syncChunk(null);
+                synchronizer.syncLand(null);
+            });
+        } finally {
+            blocking.release().countDown();
+            close.join(1_000);
+        }
+
+        assertFalse(close.isAlive());
+    }
+
+    @Test
+    void delayedRefreshAndRebuildAfterCloseDoNotReadClaimsOrPublish() {
+        synchronizer.syncChunk(chunk);
+        Runnable delayedRefresh = synchronizer::refreshIfDirty;
+        Runnable delayedRebuild = synchronizer::rebuild;
+
+        synchronizer.close();
+        delayedRefresh.run();
+        delayedRebuild.run();
+
+        assertEquals(0, source.claimsCalls());
+        assertTrue(sink.replacements().isEmpty());
+    }
+
+    @Test
+    void closeIsIdempotent() {
+        synchronizer.close();
+        synchronizer.close();
+
+        assertEquals(1, sink.closeCalls());
+    }
+
+    @Test
     void noOpVisualizationAcceptsEveryLifecycleCall() {
         ClaimVisualization visualization = ClaimVisualization.noop();
 
@@ -263,6 +307,7 @@ class ClaimMarkerSynchronizerTest {
         private final Land wilderness;
         private final Map<SChunk, Land> claims = new ConcurrentHashMap<>();
         private Runnable nextClaims = () -> { };
+        private int claimsCalls;
 
         private FakeClaimSource(Land wilderness) {
             this.wilderness = wilderness;
@@ -287,10 +332,15 @@ class ClaimMarkerSynchronizerTest {
 
         @Override
         public Map<SChunk, Land> claims() {
+            claimsCalls++;
             Runnable callback = nextClaims;
             nextClaims = () -> { };
             callback.run();
             return claims;
+        }
+
+        private int claimsCalls() {
+            return claimsCalls;
         }
 
         @Override
@@ -326,7 +376,8 @@ class ClaimMarkerSynchronizerTest {
         private final List<List<ClaimMarkerDescriptor>> replacements = new ArrayList<>();
         private Throwable nextFailure;
         private int replaceAttempts;
-        private boolean closed;
+        private int closeCalls;
+        private BlockingClose nextClose;
 
         @Override
         public synchronized void replace(Collection<ClaimMarkerDescriptor> markers) {
@@ -344,7 +395,13 @@ class ClaimMarkerSynchronizerTest {
 
         @Override
         public synchronized void close() {
-            closed = true;
+            closeCalls++;
+            BlockingClose blocking = nextClose;
+            nextClose = null;
+            if (blocking != null) {
+                blocking.entered().countDown();
+                await(blocking.release());
+            }
         }
 
         private synchronized void failNext(Throwable failure) {
@@ -360,10 +417,35 @@ class ClaimMarkerSynchronizerTest {
         }
 
         private synchronized boolean closed() {
-            return closed;
+            return closeCalls > 0;
+        }
+
+        private synchronized int closeCalls() {
+            return closeCalls;
+        }
+
+        private synchronized BlockingClose blockNextClose() {
+            BlockingClose blocking = new BlockingClose(
+                    new CountDownLatch(1),
+                    new CountDownLatch(1)
+            );
+            nextClose = blocking;
+            return blocking;
+        }
+
+        private static void await(CountDownLatch latch) {
+            try {
+                latch.await();
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException(exception);
+            }
         }
     }
 
     private record BlockingClaims(CountDownLatch entered, CountDownLatch release) {
+    }
+
+    private record BlockingClose(CountDownLatch entered, CountDownLatch release) {
     }
 }

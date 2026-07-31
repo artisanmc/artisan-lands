@@ -14,6 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -94,12 +95,12 @@ class BlueMapClaimVisualizationTest {
     }
 
     @Test
-    void rollsBackEnableRegistrationWhenDisableRegistrationFails() {
+    void rollsBackBothCallbacksWhenEnableRegistrationStoresThenFails() {
         BlueMapMarkerSink sink = mock(BlueMapMarkerSink.class);
         ClaimMarkerSynchronizer synchronizer = mock(ClaimMarkerSynchronizer.class);
         RecordingListenerRegistry listeners = new RecordingListenerRegistry();
-        RuntimeException failure = new IllegalStateException("disable registration failed");
-        listeners.onDisableFailure = failure;
+        RuntimeException failure = new IllegalStateException("enable registration failed");
+        listeners.onEnableFailure = failure;
 
         RuntimeException thrown = assertThrows(RuntimeException.class,
                 () -> new BlueMapClaimVisualization(
@@ -107,19 +108,43 @@ class BlueMapClaimVisualizationTest {
                 ));
 
         assertSame(failure, thrown);
-        assertEquals(1, listeners.unregistered.size());
-        assertSame(listeners.onEnable, listeners.unregistered.getFirst());
+        assertTrue(listeners.registered.isEmpty());
+        assertEquals(2, listeners.unregistered.size());
+        assertNotSame(listeners.onEnable, listeners.unregistered.getFirst());
+        assertSame(listeners.onEnable, listeners.unregistered.get(1));
     }
 
     @Test
-    void suppressesEnableRollbackFailureOnDisableRegistrationFailure() {
+    void rollsBackBothCallbacksInReverseOrderWhenDisableRegistrationStoresThenFails() {
+        BlueMapMarkerSink sink = mock(BlueMapMarkerSink.class);
+        ClaimMarkerSynchronizer synchronizer = mock(ClaimMarkerSynchronizer.class);
+        RecordingListenerRegistry listeners = new RecordingListenerRegistry();
+        LinkageError failure = new NoClassDefFoundError("disable registration failed");
+        listeners.onDisableFailure = failure;
+
+        LinkageError thrown = assertThrows(LinkageError.class,
+                () -> new BlueMapClaimVisualization(
+                        sink, synchronizer, listeners, newBreaker()
+                ));
+
+        assertSame(failure, thrown);
+        assertTrue(listeners.registered.isEmpty());
+        assertEquals(List.of(listeners.onDisable, listeners.onEnable), listeners.unregistered);
+    }
+
+    @Test
+    void suppressesBothRollbackFailuresOnDisableRegistrationFailure() {
         BlueMapMarkerSink sink = mock(BlueMapMarkerSink.class);
         ClaimMarkerSynchronizer synchronizer = mock(ClaimMarkerSynchronizer.class);
         RecordingListenerRegistry listeners = new RecordingListenerRegistry();
         RuntimeException failure = new IllegalStateException("disable registration failed");
-        RuntimeException rollbackFailure = new IllegalStateException("enable rollback failed");
+        RuntimeException disableRollbackFailure =
+                new IllegalStateException("disable rollback failed");
+        LinkageError enableRollbackFailure =
+                new NoClassDefFoundError("enable rollback failed");
         listeners.onDisableFailure = failure;
-        listeners.unregisterFailure = rollbackFailure;
+        listeners.unregisterFailure = disableRollbackFailure;
+        listeners.secondUnregisterFailure = enableRollbackFailure;
 
         RuntimeException thrown = assertThrows(RuntimeException.class,
                 () -> new BlueMapClaimVisualization(
@@ -127,7 +152,11 @@ class BlueMapClaimVisualizationTest {
                 ));
 
         assertSame(failure, thrown);
-        assertArrayEquals(new Throwable[]{rollbackFailure}, thrown.getSuppressed());
+        assertArrayEquals(
+                new Throwable[]{disableRollbackFailure, enableRollbackFailure},
+                thrown.getSuppressed()
+        );
+        assertEquals(2, listeners.unregistered.size());
     }
 
     @Test
@@ -138,6 +167,7 @@ class BlueMapClaimVisualizationTest {
         RuntimeException failure = new IllegalStateException("registration failed");
         listeners.onDisableFailure = failure;
         listeners.unregisterFailure = failure;
+        listeners.secondUnregisterFailure = failure;
 
         RuntimeException thrown = assertThrows(RuntimeException.class,
                 () -> new BlueMapClaimVisualization(
@@ -146,6 +176,7 @@ class BlueMapClaimVisualizationTest {
 
         assertSame(failure, thrown);
         assertEquals(0, thrown.getSuppressed().length);
+        assertEquals(2, listeners.unregistered.size());
     }
 
     @Test
@@ -367,14 +398,19 @@ class BlueMapClaimVisualizationTest {
             implements BlueMapClaimVisualization.ListenerRegistry {
         private Consumer<BlueMapAPI> onEnable;
         private Consumer<BlueMapAPI> onDisable;
+        private final List<Consumer<BlueMapAPI>> registered = new ArrayList<>();
         private final List<Consumer<BlueMapAPI>> unregistered = new ArrayList<>();
-        private RuntimeException onDisableFailure;
-        private RuntimeException unregisterFailure;
+        private Throwable onEnableFailure;
+        private Throwable onDisableFailure;
+        private Throwable unregisterFailure;
+        private Throwable secondUnregisterFailure;
         private BlueMapAPI enableApiOnRegistration;
 
         @Override
         public void onEnable(Consumer<BlueMapAPI> listener) {
             onEnable = listener;
+            registered.add(listener);
+            throwSupported(onEnableFailure);
             if (enableApiOnRegistration != null) {
                 listener.accept(enableApiOnRegistration);
             }
@@ -382,17 +418,26 @@ class BlueMapClaimVisualizationTest {
 
         @Override
         public void onDisable(Consumer<BlueMapAPI> listener) {
-            if (onDisableFailure != null) {
-                throw onDisableFailure;
-            }
             onDisable = listener;
+            registered.add(listener);
+            throwSupported(onDisableFailure);
         }
 
         @Override
         public void unregister(Consumer<BlueMapAPI> listener) {
             unregistered.add(listener);
-            if (unregisterFailure != null && unregistered.size() == 1) {
-                throw unregisterFailure;
+            registered.remove(listener);
+            throwSupported(unregistered.size() == 1
+                    ? unregisterFailure
+                    : secondUnregisterFailure);
+        }
+
+        private static void throwSupported(Throwable failure) {
+            if (failure instanceof RuntimeException runtimeException) {
+                throw runtimeException;
+            }
+            if (failure instanceof LinkageError linkageError) {
+                throw linkageError;
             }
         }
     }
