@@ -5,6 +5,8 @@ import de.bluecolored.bluemap.api.BlueMapMap;
 import fr.iban.lands.enums.LandType;
 import fr.iban.lands.integration.claims.BlueMapSettings;
 import fr.iban.lands.integration.claims.ClaimMarkerDescriptor;
+import fr.iban.lands.integration.claims.ClaimMarkerGeometry;
+import fr.iban.lands.integration.claims.ClaimMarkerPoint;
 import fr.iban.lands.integration.claims.ClaimMarkerStyle;
 import fr.iban.lands.integration.claims.ClaimVisualization;
 import fr.iban.lands.integration.claims.RgbColor;
@@ -224,10 +226,17 @@ class FaultTolerantClaimVisualizationTest {
         return new ClaimMarkerDescriptor(
                 "chunk:2:-3",
                 "world",
-                32,
-                -48,
-                48,
-                -32,
+                new ClaimMarkerGeometry(
+                        2,
+                        -3,
+                        List.of(
+                                new ClaimMarkerPoint(32, -48),
+                                new ClaimMarkerPoint(48, -48),
+                                new ClaimMarkerPoint(48, -32),
+                                new ClaimMarkerPoint(32, -32)
+                        ),
+                        List.of()
+                ),
                 "Maison",
                 "<b>Maison</b>",
                 new ClaimMarkerStyle(
