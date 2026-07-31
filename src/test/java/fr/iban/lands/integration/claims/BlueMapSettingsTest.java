@@ -22,8 +22,20 @@ class BlueMapSettingsTest {
         assertEquals("Territoires", settings.markerSetLabel());
         assertFalse(settings.defaultHidden());
         assertEquals(2, settings.lineWidth());
+        assertEquals(5, settings.refreshIntervalMinutes());
         assertEquals(new RgbColor(0x34, 0x98, 0xDB), settings.style(LandType.PLAYER).lineColor());
         assertEquals(0.25F, settings.style(LandType.PLAYER).fillOpacity());
+    }
+
+    @Test
+    void invalidRefreshIntervalWarnsAndUsesDocumentedDefault() {
+        Map<String, Object> values = Map.of("bluemap.refresh-interval-minutes", 0);
+        List<String> warnings = new ArrayList<>();
+
+        BlueMapSettings settings = BlueMapSettings.load(values::get, warnings::add);
+
+        assertEquals(5, settings.refreshIntervalMinutes());
+        assertEquals(1, warnings.size());
     }
 
     @Test

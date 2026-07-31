@@ -212,6 +212,7 @@ class FaultTolerantClaimVisualizationTest {
                 "Territoires",
                 false,
                 2,
+                5,
                 Map.of(LandType.PLAYER, style)
         );
         return new BlueMapMarkerSink(

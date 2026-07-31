@@ -11,6 +11,7 @@ public record BlueMapSettings(
         String markerSetLabel,
         boolean defaultHidden,
         int lineWidth,
+        int refreshIntervalMinutes,
         Map<LandType, ClaimMarkerStyle> styles
 ) {
     public static final String PREFIX = "bluemap.";
@@ -27,8 +28,9 @@ public record BlueMapSettings(
         String label = stringValue(valueAt, "marker-set.label", "Territoires", warning);
         boolean hidden = booleanValue(valueAt, "marker-set.default-hidden", false, warning);
         int lineWidth = positiveInt(valueAt, "line-width", 2, warning);
+        int refreshMinutes = positiveInt(valueAt, "refresh-interval-minutes", 5, warning);
 
-        return new BlueMapSettings(enabled, label, hidden, lineWidth, Map.of(
+        return new BlueMapSettings(enabled, label, hidden, lineWidth, refreshMinutes, Map.of(
                 LandType.PLAYER, style(valueAt, warning, "player", "#3498DB"),
                 LandType.GUILD, style(valueAt, warning, "guild", "#2ECC71"),
                 LandType.SYSTEM, style(valueAt, warning, "system", "#E74C3C")

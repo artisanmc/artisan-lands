@@ -374,6 +374,7 @@ class BlueMapMarkerSinkTest {
                 "Territoires",
                 defaultHidden,
                 2,
+                5,
                 Map.of(LandType.PLAYER, style)
         );
         return new BlueMapMarkerSink(settings, markerFactory, mapResolver, logger);

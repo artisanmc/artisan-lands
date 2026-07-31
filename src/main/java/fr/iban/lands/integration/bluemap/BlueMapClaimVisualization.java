@@ -1,5 +1,6 @@
 package fr.iban.lands.integration.bluemap;
 
+import com.tcoded.folialib.wrapper.task.WrappedTask;
 import de.bluecolored.bluemap.api.BlueMapAPI;
 import fr.iban.lands.LandsPlugin;
 import fr.iban.lands.integration.claims.BlueMapSettings;
@@ -44,6 +45,8 @@ public final class BlueMapClaimVisualization implements ClaimVisualization {
     private final BlueMapFailureCircuitBreaker breaker;
     private final Consumer<BlueMapAPI> onEnable;
     private final Consumer<BlueMapAPI> onDisable;
+    private Cancellable refreshTask;
+    private boolean closed;
 
     public BlueMapClaimVisualization(
             BlueMapMarkerSink sink,
@@ -131,7 +134,35 @@ public final class BlueMapClaimVisualization implements ClaimVisualization {
                 BLUE_MAP_LISTENERS,
                 breaker
         );
+        long periodTicks = Math.multiplyExact(
+                settings.refreshIntervalMinutes(),
+                60L * 20L
+        );
+        try {
+            lifecycleOwner.startRefresh((action, delay, period) -> {
+                WrappedTask task = plugin.getScheduler().runTimerAsync(action, delay, period);
+                return task::cancel;
+            }, periodTicks);
+        } catch (RuntimeException | LinkageError failure) {
+            lifecycleOwner.close();
+            throw failure;
+        }
         return new FaultTolerantClaimVisualization(lifecycleOwner, breaker);
+    }
+
+    void startRefresh(RefreshScheduler scheduler, long periodTicks) {
+        Cancellable scheduled = scheduler.schedule(
+                () -> breaker.execute("scheduled refresh", synchronizer::refreshIfDirty),
+                periodTicks,
+                periodTicks
+        );
+        synchronized (this) {
+            if (closed) {
+                scheduled.cancel();
+            } else {
+                refreshTask = scheduled;
+            }
+        }
     }
 
     @Override
@@ -151,6 +182,18 @@ public final class BlueMapClaimVisualization implements ClaimVisualization {
 
     @Override
     public void close() {
+        Cancellable scheduled;
+        synchronized (this) {
+            if (closed) {
+                return;
+            }
+            closed = true;
+            scheduled = refreshTask;
+            refreshTask = null;
+        }
+        if (scheduled != null) {
+            breaker.cleanup("scheduled refresh cancel", scheduled::cancel);
+        }
         breaker.cleanup("BlueMap enable listener unregister", () -> listeners.unregister(onEnable));
         breaker.cleanup("BlueMap disable listener unregister", () -> listeners.unregister(onDisable));
         breaker.cleanup("BlueMap synchronizer close", synchronizer::close);
@@ -186,5 +229,13 @@ public final class BlueMapClaimVisualization implements ClaimVisualization {
         void onDisable(Consumer<BlueMapAPI> listener);
 
         void unregister(Consumer<BlueMapAPI> listener);
+    }
+
+    interface RefreshScheduler {
+        Cancellable schedule(Runnable action, long delayTicks, long periodTicks);
+    }
+
+    interface Cancellable {
+        void cancel();
     }
 }

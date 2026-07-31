@@ -13,6 +13,7 @@ guild-claim-prices:
 
 bluemap:
   enabled: true
+  refresh-interval-minutes: 5
   marker-set:
     label: "Territoires"
     default-hidden: false

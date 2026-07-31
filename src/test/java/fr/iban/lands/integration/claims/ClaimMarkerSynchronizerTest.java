@@ -249,6 +249,7 @@ class ClaimMarkerSynchronizerTest {
                 "Territoires",
                 false,
                 2,
+                5,
                 Map.of(
                         LandType.PLAYER, style,
                         LandType.GUILD, style,
