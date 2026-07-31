@@ -181,7 +181,7 @@ class FaultTolerantClaimVisualizationTest {
         BlueMapMarkerSink sink = markerSink(logger, resolver);
         sink.attach(api);
         RecordingVisualization delegate = new RecordingVisualization();
-        delegate.syncChunkAction = () -> sink.put(descriptor());
+        delegate.syncChunkAction = () -> sink.replace(List.of(descriptor()));
         BlueMapFailureCircuitBreaker breaker = new BlueMapFailureCircuitBreaker(logger);
         FaultTolerantClaimVisualization visualization =
                 new FaultTolerantClaimVisualization(delegate, breaker);
@@ -194,8 +194,8 @@ class FaultTolerantClaimVisualizationTest {
         assertEquals(0, delegate.syncLandCalls);
         assertEquals(1, handler.records.size());
         assertTrue(handler.records.getFirst().getThrown().getMessage().contains("broken"));
-        assertTrue(handler.records.getFirst().getThrown().getMessage().contains("world"));
-        assertTrue(handler.records.getFirst().getThrown().getMessage().contains("chunk:2:-3"));
+        assertTrue(handler.records.getFirst().getThrown().getMessage().contains("replace"));
+        assertTrue(handler.records.getFirst().getThrown().getMessage().contains("mslands-claims"));
     }
 
     private static BlueMapMarkerSink markerSink(

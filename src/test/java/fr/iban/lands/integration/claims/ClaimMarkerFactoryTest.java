@@ -1,15 +1,12 @@
 package fr.iban.lands.integration.claims;
 
 import fr.iban.lands.enums.LandType;
-import fr.iban.lands.model.SChunk;
 import fr.iban.lands.model.land.GuildLand;
 import fr.iban.lands.model.land.PlayerLand;
 import fr.iban.lands.model.land.SubLand;
 import fr.iban.lands.model.land.SystemLand;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
 
 import java.util.List;
 import java.util.Map;
@@ -22,7 +19,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ClaimMarkerFactoryTest {
 
     private ClaimMarkerFactory factory;
-    private final SChunk chunk = new SChunk("survival", "world", 2, -3);
     private final ClaimMarkerGeometry geometry = new ClaimMarkerGeometry(
             2, -3,
             List.of(
@@ -64,38 +60,10 @@ class ClaimMarkerFactoryTest {
         );
     }
 
-    @ParameterizedTest
-    @CsvSource({
-            "2,-3,32,-48",
-            "-2,3,-32,48"
-    })
-    void keepsCompatibilityChunkMarkersWithSingleChunkGeometry(
-            int chunkX, int chunkZ, int minX, int minZ
-    ) {
-        SChunk chunk = new SChunk("survival", "world", chunkX, chunkZ);
-        PlayerLand land = new PlayerLand(UUID.randomUUID(), UUID.randomUUID(), "Maison");
-
-        ClaimMarkerDescriptor marker = factory.create(chunk, land).orElseThrow();
-
-        assertAll(
-                () -> assertEquals("chunk:" + chunkX + ":" + chunkZ, marker.id()),
-                () -> assertEquals(new ClaimMarkerGeometry(
-                        chunkX,
-                        chunkZ,
-                        List.of(
-                                new ClaimMarkerPoint(minX, minZ),
-                                new ClaimMarkerPoint(minX + 16, minZ),
-                                new ClaimMarkerPoint(minX + 16, minZ + 16),
-                                new ClaimMarkerPoint(minX, minZ + 16)
-                        ),
-                        List.of()
-                ), marker.geometry())
-        );
-    }
-
     @Test
     void excludesSublands() {
-        assertTrue(factory.create(chunk, new SubLand(UUID.randomUUID(), "Mine")).isEmpty());
+        assertTrue(factory.create(
+                "world", new SubLand(UUID.randomUUID(), "Mine"), geometry).isEmpty());
     }
 
     @Test
@@ -121,7 +89,8 @@ class ClaimMarkerFactoryTest {
                 land -> "ignored"
         );
 
-        assertTrue(configuredFactory.create(chunk, new SubLand(UUID.randomUUID(), "Mine")).isEmpty());
+        assertTrue(configuredFactory.create(
+                "world", new SubLand(UUID.randomUUID(), "Mine"), geometry).isEmpty());
     }
 
     @Test
@@ -141,12 +110,14 @@ class ClaimMarkerFactoryTest {
         ClaimMarkerFactory guildFactory = new ClaimMarkerFactory(settings(), land -> "Les Bleus");
 
         ClaimMarkerDescriptor guild = guildFactory.create(
-                chunk,
-                new GuildLand(UUID.randomUUID(), UUID.randomUUID(), "Citadelle")
+                "world",
+                new GuildLand(UUID.randomUUID(), UUID.randomUUID(), "Citadelle"),
+                geometry
         ).orElseThrow();
         ClaimMarkerDescriptor system = factory.create(
-                chunk,
-                new SystemLand(UUID.randomUUID(), "Spawn")
+                "world",
+                new SystemLand(UUID.randomUUID(), "Spawn"),
+                geometry
         ).orElseThrow();
 
         assertAll(
@@ -160,7 +131,7 @@ class ClaimMarkerFactoryTest {
         ClaimMarkerFactory escapingFactory = new ClaimMarkerFactory(settings(), land -> "Bob &<>\"'");
         PlayerLand land = new PlayerLand(UUID.randomUUID(), UUID.randomUUID(), "Maison &<>\"'");
 
-        ClaimMarkerDescriptor marker = escapingFactory.create(chunk, land).orElseThrow();
+        ClaimMarkerDescriptor marker = escapingFactory.create("world", land, geometry).orElseThrow();
 
         assertEquals(
                 "<b>Maison &amp;&lt;&gt;&quot;&#39;</b><br>Type: Joueur<br>Propriétaire: Bob &amp;&lt;&gt;&quot;&#39;",

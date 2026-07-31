@@ -90,17 +90,7 @@ public final class BlueMapMarkerSink implements ClaimMarkerSink {
         throwIfFailed(firstFailure);
     }
 
-    @Override
-    public synchronized void clear() {
-        BlueMapAPI api = activeApi;
-        if (api == null) {
-            return;
-        }
-
-        clear(api);
-    }
-
-    private void clear(BlueMapAPI api) {
+    private void cleanup(BlueMapAPI api) {
         RuntimeException firstFailure = null;
         for (BlueMapMap map : api.getMaps()) {
             try {
@@ -120,63 +110,6 @@ public final class BlueMapMarkerSink implements ClaimMarkerSink {
     }
 
     @Override
-    public synchronized void put(ClaimMarkerDescriptor marker) {
-        BlueMapAPI api = activeApi;
-        if (api == null) {
-            return;
-        }
-
-        Collection<BlueMapMap> maps = mapResolver.resolve(api, marker.world());
-        if (maps.isEmpty()) {
-            warnUnresolved(marker.world(), marker.id());
-            return;
-        }
-
-        RuntimeException firstFailure = null;
-        for (BlueMapMap map : maps) {
-            try {
-                markerSet(map).put(marker.id(), markerFactory.create(marker));
-            } catch (RuntimeException exception) {
-                firstFailure = collectFailure(
-                        firstFailure,
-                        mutationFailure("put", map, marker.world(), marker.id(), exception)
-                );
-            }
-        }
-        throwIfFailed(firstFailure);
-    }
-
-    @Override
-    public synchronized void remove(String world, String markerId) {
-        BlueMapAPI api = activeApi;
-        if (api == null) {
-            return;
-        }
-
-        Collection<BlueMapMap> maps = mapResolver.resolve(api, world);
-        if (maps.isEmpty()) {
-            warnUnresolved(world, markerId);
-            return;
-        }
-
-        RuntimeException firstFailure = null;
-        for (BlueMapMap map : maps) {
-            try {
-                MarkerSet markerSet = map.getMarkerSets().get(MARKER_SET_ID);
-                if (markerSet != null) {
-                    markerSet.remove(markerId);
-                }
-            } catch (RuntimeException exception) {
-                firstFailure = collectFailure(
-                        firstFailure,
-                        mutationFailure("remove", map, world, markerId, exception)
-                );
-            }
-        }
-        throwIfFailed(firstFailure);
-    }
-
-    @Override
     public synchronized void close() {
         if (closed) {
             return;
@@ -186,15 +119,8 @@ public final class BlueMapMarkerSink implements ClaimMarkerSink {
         BlueMapAPI api = activeApi;
         activeApi = null;
         if (api != null) {
-            clear(api);
+            cleanup(api);
         }
-    }
-
-    private MarkerSet markerSet(BlueMapMap map) {
-        return map.getMarkerSets().computeIfAbsent(
-                MARKER_SET_ID,
-                ignored -> newMarkerSet()
-        );
     }
 
     private MarkerSet newMarkerSet() {
@@ -209,21 +135,6 @@ public final class BlueMapMarkerSink implements ClaimMarkerSink {
         logger.warning(
                 "Could not resolve BlueMap maps for world '" + world
                         + "' while updating marker '" + markerId + "'."
-        );
-    }
-
-    private RuntimeException mutationFailure(
-            String operation,
-            BlueMapMap map,
-            String world,
-            String markerId,
-            RuntimeException exception
-    ) {
-        return new IllegalStateException(
-                "Failed to " + operation + " BlueMap marker '" + markerId
-                        + "' on map '" + mapId(map, exception)
-                        + "' for world '" + world + "'.",
-                exception
         );
     }
 

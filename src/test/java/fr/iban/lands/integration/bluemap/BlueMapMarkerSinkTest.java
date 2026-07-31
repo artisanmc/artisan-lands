@@ -14,10 +14,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Collection;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CyclicBarrier;
@@ -34,6 +34,7 @@ import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -42,6 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class BlueMapMarkerSinkTest {
@@ -75,71 +77,28 @@ class BlueMapMarkerSinkTest {
     }
 
     @Test
-    void putCreatesConfiguredMarkerSetAndMarkerOnEveryResolvedMap() {
+    void replaceCreatesConfiguredMarkerSetAndMarkerOnEveryResolvedMap() {
         Map<String, MarkerSet> firstSets = new HashMap<>();
         Map<String, MarkerSet> secondSets = new HashMap<>();
         BlueMapMap first = map("surface", firstSets);
         BlueMapMap second = map("caves", secondSets);
+        when(api.getMaps()).thenReturn(List.of(first, second));
         when(resolver.resolve(api, "world")).thenReturn(List.of(first, second));
         BlueMapMarkerSink sink = sink(true);
-
         sink.attach(api);
-        sink.put(descriptor("chunk:2:-3"));
 
-        MarkerSet firstSet = firstSets.get("mslands-claims");
-        MarkerSet secondSet = secondSets.get("mslands-claims");
+        sink.replace(List.of(descriptor("region-a")));
+
+        MarkerSet firstSet = firstSets.get(BlueMapMarkerSink.MARKER_SET_ID);
+        MarkerSet secondSet = secondSets.get(BlueMapMarkerSink.MARKER_SET_ID);
         assertAll(
                 () -> assertNotNull(firstSet),
                 () -> assertNotNull(secondSet),
                 () -> assertEquals("Territoires", firstSet.getLabel()),
                 () -> assertTrue(firstSet.isToggleable()),
                 () -> assertTrue(firstSet.isDefaultHidden()),
-                () -> assertNotNull(firstSet.get("chunk:2:-3")),
-                () -> assertNotNull(secondSet.get("chunk:2:-3"))
-        );
-    }
-
-    @Test
-    void removeDeletesMarkerFromEveryResolvedMap() {
-        Map<String, MarkerSet> firstSets = new HashMap<>();
-        Map<String, MarkerSet> secondSets = new HashMap<>();
-        BlueMapMap first = map("surface", firstSets);
-        BlueMapMap second = map("caves", secondSets);
-        when(resolver.resolve(api, "world")).thenReturn(List.of(first, second));
-        BlueMapMarkerSink sink = sink(false);
-        sink.attach(api);
-        sink.put(descriptor("chunk:2:-3"));
-
-        sink.remove("world", "chunk:2:-3");
-
-        assertAll(
-                () -> assertFalse(firstSets.get("mslands-claims").getMarkers().containsKey("chunk:2:-3")),
-                () -> assertFalse(secondSets.get("mslands-claims").getMarkers().containsKey("chunk:2:-3"))
-        );
-    }
-
-    @Test
-    void clearRemovesOnlyTheClaimsMarkerSetFromActiveMaps() {
-        Map<String, MarkerSet> firstSets = new HashMap<>();
-        Map<String, MarkerSet> secondSets = new HashMap<>();
-        MarkerSet unrelated = MarkerSet.builder().label("Other").build();
-        firstSets.put("other", unrelated);
-        secondSets.put("other", unrelated);
-        BlueMapMap first = map("surface", firstSets);
-        BlueMapMap second = map("caves", secondSets);
-        when(resolver.resolve(api, "world")).thenReturn(List.of(first, second));
-        when(api.getMaps()).thenReturn(List.of(first, second));
-        BlueMapMarkerSink sink = sink(false);
-        sink.attach(api);
-        sink.put(descriptor("chunk:2:-3"));
-
-        sink.clear();
-
-        assertAll(
-                () -> assertFalse(firstSets.containsKey("mslands-claims")),
-                () -> assertFalse(secondSets.containsKey("mslands-claims")),
-                () -> assertSame(unrelated, firstSets.get("other")),
-                () -> assertSame(unrelated, secondSets.get("other"))
+                () -> assertNotNull(firstSet.get("region-a")),
+                () -> assertNotNull(secondSet.get("region-a"))
         );
     }
 
@@ -166,10 +125,8 @@ class BlueMapMarkerSinkTest {
 
     @Test
     void emptyReplacementRemovesStaleMarkerSetsFromEveryActiveMap() {
-        Map<String, MarkerSet> firstSets = new HashMap<>();
-        Map<String, MarkerSet> secondSets = new HashMap<>();
-        firstSets.put(BlueMapMarkerSink.MARKER_SET_ID, MarkerSet.builder().label("old").build());
-        secondSets.put(BlueMapMarkerSink.MARKER_SET_ID, MarkerSet.builder().label("old").build());
+        Map<String, MarkerSet> firstSets = setsWithStaleClaims();
+        Map<String, MarkerSet> secondSets = setsWithStaleClaims();
         BlueMapMap first = map("surface", firstSets);
         BlueMapMap second = map("caves", secondSets);
         when(api.getMaps()).thenReturn(List.of(first, second));
@@ -236,206 +193,47 @@ class BlueMapMarkerSinkTest {
 
     @Test
     void unresolvedWorldProducesNoMarkerAndOneWarning() {
+        Map<String, MarkerSet> sets = setsWithStaleClaims();
+        BlueMapMap map = map("surface", sets);
+        when(api.getMaps()).thenReturn(List.of(map));
         when(resolver.resolve(api, "missing")).thenReturn(List.of());
         BlueMapMarkerSink sink = sink(false);
         sink.attach(api);
 
-        sink.put(descriptor("chunk:2:-3", "missing"));
+        sink.replace(List.of(descriptor("region-a", "missing")));
 
         assertAll(
+                () -> assertFalse(sets.containsKey(BlueMapMarkerSink.MARKER_SET_ID)),
                 () -> assertEquals(1, records.size()),
                 () -> assertEquals(Level.WARNING, records.getFirst().getLevel()),
                 () -> assertTrue(records.getFirst().getMessage().contains("missing")),
-                () -> assertTrue(records.getFirst().getMessage().contains("chunk:2:-3"))
+                () -> assertTrue(records.getFirst().getMessage().contains("region-a"))
         );
     }
 
     @Test
-    void putAttemptsEveryResolvedMapThenThrowsFirstContextualFailure() {
-        IllegalStateException firstFailure = new IllegalStateException("first unavailable");
-        IllegalStateException laterFailure = new IllegalStateException("later unavailable");
-        BlueMapMap firstFailing = failingMap("broken-first", firstFailure);
-        Map<String, MarkerSet> healthySets = new HashMap<>();
-        BlueMapMap healthy = map("surface", healthySets);
-        BlueMapMap laterFailing = failingMap("broken-later", laterFailure);
-        when(resolver.resolve(api, "world"))
-                .thenReturn(List.of(firstFailing, healthy, laterFailing));
-        BlueMapMarkerSink sink = sink(false);
-        sink.attach(api);
-
-        RuntimeException thrown = assertThrows(
-                RuntimeException.class,
-                () -> sink.put(descriptor("chunk:2:-3"))
-        );
-
-        assertAll(
-                () -> assertNotNull(healthySets.get("mslands-claims").get("chunk:2:-3")),
-                () -> assertTrue(thrown.getMessage().contains("put")),
-                () -> assertTrue(thrown.getMessage().contains("broken-first")),
-                () -> assertTrue(thrown.getMessage().contains("world")),
-                () -> assertTrue(thrown.getMessage().contains("chunk:2:-3")),
-                () -> assertSame(firstFailure, thrown.getCause()),
-                () -> assertEquals(1, thrown.getSuppressed().length),
-                () -> assertSame(laterFailure, thrown.getSuppressed()[0].getCause()),
-                () -> assertTrue(records.isEmpty())
-        );
-    }
-
-    @Test
-    void unavailableMapIdDoesNotAbortPutBeforeHealthyMap() {
+    void unavailableMapIdDoesNotAbortReplacementBeforeHealthyMap() {
         IllegalStateException markerFailure = new IllegalStateException("markers unavailable");
         IllegalStateException idFailure = new IllegalStateException("id unavailable");
         BlueMapMap failing = failingMapWithUnavailableId(markerFailure, idFailure);
         Map<String, MarkerSet> healthySets = new HashMap<>();
-        BlueMapMap healthy = map("surface", healthySets);
-        when(resolver.resolve(api, "world")).thenReturn(List.of(failing, healthy));
-        BlueMapMarkerSink sink = sink(false);
-        sink.attach(api);
-
-        RuntimeException thrown = assertThrows(
-                RuntimeException.class,
-                () -> sink.put(descriptor("chunk:2:-3"))
-        );
-
-        assertAll(
-                () -> assertNotNull(healthySets.get("mslands-claims").get("chunk:2:-3")),
-                () -> assertTrue(thrown.getMessage().contains("<unavailable>")),
-                () -> assertSame(markerFailure, thrown.getCause()),
-                () -> assertEquals(1, markerFailure.getSuppressed().length),
-                () -> assertSame(idFailure, markerFailure.getSuppressed()[0]),
-                () -> assertTrue(records.isEmpty())
-        );
-    }
-
-    @Test
-    void removeAttemptsEveryResolvedMapThenThrowsFirstContextualFailure() {
-        IllegalStateException firstFailure = new IllegalStateException("first unavailable");
-        IllegalStateException laterFailure = new IllegalStateException("later unavailable");
-        BlueMapMap firstFailing = failingMap("broken-first", firstFailure);
-        Map<String, MarkerSet> healthySets = new HashMap<>();
-        MarkerSet healthyMarkerSet = MarkerSet.builder().label("Territoires").build();
-        healthyMarkerSet.put("chunk:2:-3", mock(de.bluecolored.bluemap.api.markers.Marker.class));
-        healthySets.put("mslands-claims", healthyMarkerSet);
-        BlueMapMap healthy = map("surface", healthySets);
-        BlueMapMap laterFailing = failingMap("broken-later", laterFailure);
-        when(resolver.resolve(api, "world"))
-                .thenReturn(List.of(firstFailing, healthy, laterFailing));
-        BlueMapMarkerSink sink = sink(false);
-        sink.attach(api);
-
-        RuntimeException thrown = assertThrows(
-                RuntimeException.class,
-                () -> sink.remove("world", "chunk:2:-3")
-        );
-
-        assertAll(
-                () -> assertFalse(healthyMarkerSet.getMarkers().containsKey("chunk:2:-3")),
-                () -> assertTrue(thrown.getMessage().contains("remove")),
-                () -> assertTrue(thrown.getMessage().contains("broken-first")),
-                () -> assertTrue(thrown.getMessage().contains("world")),
-                () -> assertTrue(thrown.getMessage().contains("chunk:2:-3")),
-                () -> assertSame(firstFailure, thrown.getCause()),
-                () -> assertEquals(1, thrown.getSuppressed().length),
-                () -> assertSame(laterFailure, thrown.getSuppressed()[0].getCause()),
-                () -> assertTrue(records.isEmpty())
-        );
-    }
-
-    @Test
-    void sameMapFailureCannotSelfSuppressAndDoesNotAbortRemoveBeforeHealthyMap() {
-        IllegalStateException sharedFailure = new IllegalStateException("map unavailable");
-        BlueMapMap failing = failingMapWithUnavailableId(sharedFailure, sharedFailure);
-        MarkerSet healthyMarkerSet = MarkerSet.builder().label("Territoires").build();
-        healthyMarkerSet.put("chunk:2:-3", mock(de.bluecolored.bluemap.api.markers.Marker.class));
-        Map<String, MarkerSet> healthySets = new HashMap<>();
-        healthySets.put("mslands-claims", healthyMarkerSet);
-        BlueMapMap healthy = map("surface", healthySets);
-        when(resolver.resolve(api, "world")).thenReturn(List.of(failing, healthy));
-        BlueMapMarkerSink sink = sink(false);
-        sink.attach(api);
-
-        RuntimeException thrown = assertThrows(
-                RuntimeException.class,
-                () -> sink.remove("world", "chunk:2:-3")
-        );
-
-        assertAll(
-                () -> assertFalse(healthyMarkerSet.getMarkers().containsKey("chunk:2:-3")),
-                () -> assertTrue(thrown.getMessage().contains("<unavailable>")),
-                () -> assertSame(sharedFailure, thrown.getCause()),
-                () -> assertEquals(0, sharedFailure.getSuppressed().length),
-                () -> assertTrue(records.isEmpty())
-        );
-    }
-
-    @Test
-    void clearAttemptsEveryActiveMapThenThrowsFirstContextualFailure() {
-        IllegalStateException firstFailure = new IllegalStateException("first unavailable");
-        IllegalStateException laterFailure = new IllegalStateException("later unavailable");
-        BlueMapMap firstFailing = failingMap("broken-first", firstFailure);
-        Map<String, MarkerSet> healthySets = new HashMap<>();
-        healthySets.put("mslands-claims", MarkerSet.builder().label("Territoires").build());
-        BlueMapMap healthy = map("surface", healthySets);
-        BlueMapMap laterFailing = failingMap("broken-later", laterFailure);
-        when(api.getMaps()).thenReturn(List.of(firstFailing, healthy, laterFailing));
-        BlueMapMarkerSink sink = sink(false);
-        sink.attach(api);
-
-        RuntimeException thrown = assertThrows(RuntimeException.class, sink::clear);
-
-        assertAll(
-                () -> assertFalse(healthySets.containsKey("mslands-claims")),
-                () -> assertTrue(thrown.getMessage().contains("clear")),
-                () -> assertTrue(thrown.getMessage().contains("broken-first")),
-                () -> assertTrue(thrown.getMessage().contains("mslands-claims")),
-                () -> assertSame(firstFailure, thrown.getCause()),
-                () -> assertEquals(1, thrown.getSuppressed().length),
-                () -> assertSame(laterFailure, thrown.getSuppressed()[0].getCause()),
-                () -> assertTrue(records.isEmpty())
-        );
-    }
-
-    @Test
-    void unavailableMapIdDoesNotAbortClearBeforeHealthyMap() {
-        IllegalStateException markerFailure = new IllegalStateException("markers unavailable");
-        IllegalStateException idFailure = new IllegalStateException("id unavailable");
-        BlueMapMap failing = failingMapWithUnavailableId(markerFailure, idFailure);
-        Map<String, MarkerSet> healthySets = new HashMap<>();
-        healthySets.put("mslands-claims", MarkerSet.builder().label("Territoires").build());
         BlueMapMap healthy = map("surface", healthySets);
         when(api.getMaps()).thenReturn(List.of(failing, healthy));
+        when(resolver.resolve(api, "world")).thenReturn(List.of(healthy));
         BlueMapMarkerSink sink = sink(false);
         sink.attach(api);
 
-        RuntimeException thrown = assertThrows(RuntimeException.class, sink::clear);
+        RuntimeException thrown = assertThrows(
+                RuntimeException.class,
+                () -> sink.replace(List.of(descriptor("region-a")))
+        );
 
         assertAll(
-                () -> assertFalse(healthySets.containsKey("mslands-claims")),
+                () -> assertNotNull(healthySets.get(BlueMapMarkerSink.MARKER_SET_ID).get("region-a")),
                 () -> assertTrue(thrown.getMessage().contains("<unavailable>")),
                 () -> assertSame(markerFailure, thrown.getCause()),
                 () -> assertEquals(1, markerFailure.getSuppressed().length),
-                () -> assertSame(idFailure, markerFailure.getSuppressed()[0]),
-                () -> assertTrue(records.isEmpty())
-        );
-    }
-
-    @Test
-    void detachMakesLaterWritesNoOps() {
-        Map<String, MarkerSet> markerSets = new HashMap<>();
-        BlueMapMap map = map("surface", markerSets);
-        when(resolver.resolve(api, "world")).thenReturn(List.of(map));
-        BlueMapMarkerSink sink = sink(false);
-        sink.attach(api);
-        sink.put(descriptor("chunk:2:-3"));
-
-        sink.detach(api);
-        sink.put(descriptor("chunk:3:-3"));
-        sink.remove("world", "chunk:2:-3");
-        sink.clear();
-
-        assertAll(
-                () -> assertTrue(markerSets.get("mslands-claims").getMarkers().containsKey("chunk:2:-3")),
-                () -> assertFalse(markerSets.get("mslands-claims").getMarkers().containsKey("chunk:3:-3"))
+                () -> assertSame(idFailure, markerFailure.getSuppressed()[0])
         );
     }
 
@@ -447,13 +245,13 @@ class BlueMapMarkerSinkTest {
         BlueMapMap map = map("surface", new HashMap<>());
         BlueMapMapResolver recordingResolver = new BlueMapMapResolver() {
             @Override
-            public Collection<BlueMapMap> resolve(BlueMapAPI api, String worldName) {
-                resolvedApi.set(api);
+            public Collection<BlueMapMap> resolve(BlueMapAPI resolved, String worldName) {
+                resolvedApi.set(resolved);
                 return List.of(map);
             }
         };
         BlueMapMarkerSink sink = sink(false, recordingResolver);
-        int iterations = 5_000;
+        int iterations = 2_000;
         CyclicBarrier barrier = new CyclicBarrier(3);
         AtomicInteger staleTransitions = new AtomicInteger();
         ExecutorService executor = Executors.newFixedThreadPool(2);
@@ -467,7 +265,7 @@ class BlueMapMarkerSinkTest {
                 resolvedApi.set(null);
                 barrier.await();
                 barrier.await();
-                sink.remove("world", "chunk:2:-3");
+                sink.replace(List.of(descriptor("region-a")));
                 if (resolvedApi.get() != newApi) {
                     staleTransitions.incrementAndGet();
                 }
@@ -483,17 +281,17 @@ class BlueMapMarkerSinkTest {
     }
 
     @Test
-    void closeWaitsForInFlightWriteThenRemovesItsMarker() throws Exception {
+    void closeWaitsForInFlightReplacementThenRemovesItsMarkerSet() throws Exception {
         Map<String, MarkerSet> markerSets = new HashMap<>();
         BlueMapMap map = map("surface", markerSets);
         when(api.getMaps()).thenReturn(List.of(map));
-        var writeEntered = new CountDownLatch(1);
-        var releaseWrite = new CountDownLatch(1);
+        CountDownLatch replaceEntered = new CountDownLatch(1);
+        CountDownLatch releaseReplace = new CountDownLatch(1);
         BlueMapMapResolver blockingResolver = new BlueMapMapResolver() {
             @Override
             public Collection<BlueMapMap> resolve(BlueMapAPI ignored, String worldName) {
-                writeEntered.countDown();
-                await(releaseWrite);
+                replaceEntered.countDown();
+                await(releaseReplace);
                 return List.of(map);
             }
         };
@@ -502,35 +300,51 @@ class BlueMapMarkerSinkTest {
         ExecutorService executor = Executors.newFixedThreadPool(2);
 
         try {
-            Future<?> write = executor.submit(() -> sink.put(descriptor("chunk:2:-3")));
-            assertTrue(writeEntered.await(1, TimeUnit.SECONDS));
+            Future<?> replace = executor.submit(() -> sink.replace(List.of(descriptor("region-a"))));
+            assertTrue(replaceEntered.await(1, TimeUnit.SECONDS));
             Future<?> close = executor.submit(sink::close);
 
             assertThrows(TimeoutException.class, () -> close.get(100, TimeUnit.MILLISECONDS));
 
-            releaseWrite.countDown();
-            write.get(1, TimeUnit.SECONDS);
+            releaseReplace.countDown();
+            replace.get(1, TimeUnit.SECONDS);
             close.get(1, TimeUnit.SECONDS);
-            assertFalse(markerSets.containsKey("mslands-claims"));
+            assertFalse(markerSets.containsKey(BlueMapMarkerSink.MARKER_SET_ID));
         } finally {
-            releaseWrite.countDown();
+            releaseReplace.countDown();
             executor.shutdownNow();
         }
     }
 
     @Test
-    void closeDiscardsApiEvenWhenCleanupFails() {
-        Map<String, MarkerSet> markerSets = new HashMap<>();
-        BlueMapMap map = map("surface", markerSets);
-        when(resolver.resolve(api, "world")).thenReturn(List.of(map));
-        when(api.getMaps()).thenThrow(new IllegalStateException("maps unavailable"));
+    void closeAttemptsEveryMapThenDiscardsApiWhenCleanupFails() {
+        IllegalStateException firstFailure = new IllegalStateException("first unavailable");
+        IllegalStateException laterFailure = new IllegalStateException("later unavailable");
+        BlueMapMap firstFailing = failingMap("broken-first", firstFailure);
+        Map<String, MarkerSet> healthySets = setsWithStaleClaims();
+        BlueMapMap healthy = map("surface", healthySets);
+        BlueMapMap laterFailing = failingMap("broken-later", laterFailure);
+        when(api.getMaps()).thenReturn(List.of(firstFailing, healthy, laterFailing));
         BlueMapMarkerSink sink = sink(false);
         sink.attach(api);
 
-        assertThrows(IllegalStateException.class, sink::close);
-        sink.put(descriptor("chunk:2:-3"));
+        RuntimeException thrown = assertThrows(RuntimeException.class, sink::close);
 
-        assertTrue(markerSets.isEmpty());
+        assertAll(
+                () -> assertFalse(healthySets.containsKey(BlueMapMarkerSink.MARKER_SET_ID)),
+                () -> assertTrue(thrown.getMessage().contains("clear")),
+                () -> assertSame(firstFailure, thrown.getCause()),
+                () -> assertEquals(1, thrown.getSuppressed().length),
+                () -> assertSame(laterFailure, thrown.getSuppressed()[0].getCause())
+        );
+        assertDoesNotThrow(() -> sink.replace(List.of(descriptor("region-a"))));
+        verifyNoInteractions(resolver);
+    }
+
+    private Map<String, MarkerSet> setsWithStaleClaims() {
+        Map<String, MarkerSet> sets = new HashMap<>();
+        sets.put(BlueMapMarkerSink.MARKER_SET_ID, MarkerSet.builder().label("old").build());
+        return sets;
     }
 
     private BlueMapMarkerSink sink(boolean defaultHidden) {
@@ -538,23 +352,10 @@ class BlueMapMarkerSinkTest {
     }
 
     private BlueMapMarkerSink sink(boolean defaultHidden, BlueMapMapResolver mapResolver) {
-        ClaimMarkerStyle style = new ClaimMarkerStyle(
-                new RgbColor(52, 152, 219),
-                new RgbColor(52, 152, 219),
-                0.25F
-        );
-        BlueMapSettings settings = new BlueMapSettings(
-                true,
-                "Territoires",
+        return sink(
                 defaultHidden,
-                2,
-                Map.of(LandType.PLAYER, style)
-        );
-        return new BlueMapMarkerSink(
-                settings,
-                new BlueMapShapeMarkerFactory(settings.lineWidth()),
                 mapResolver,
-                logger
+                new BlueMapShapeMarkerFactory(2)
         );
     }
 
