@@ -4,11 +4,16 @@ import com.flowpowered.math.vector.Vector2d;
 import de.bluecolored.bluemap.api.markers.ShapeMarker;
 import de.bluecolored.bluemap.api.math.Color;
 import fr.iban.lands.integration.claims.ClaimMarkerDescriptor;
+import fr.iban.lands.integration.claims.ClaimMarkerGeometry;
+import fr.iban.lands.integration.claims.ClaimMarkerPoint;
 import fr.iban.lands.integration.claims.ClaimMarkerStyle;
 import fr.iban.lands.integration.claims.RgbColor;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
@@ -16,13 +21,25 @@ class BlueMapShapeMarkerFactoryTest {
 
     @Test
     void convertsClaimGeometryAndStyleToShapeMarker() {
+        ClaimMarkerGeometry geometry = new ClaimMarkerGeometry(
+                2, -3,
+                List.of(
+                        new ClaimMarkerPoint(32, -48),
+                        new ClaimMarkerPoint(80, -48),
+                        new ClaimMarkerPoint(80, 0),
+                        new ClaimMarkerPoint(32, 0)
+                ),
+                List.of(List.of(
+                        new ClaimMarkerPoint(48, -32),
+                        new ClaimMarkerPoint(48, -16),
+                        new ClaimMarkerPoint(64, -16),
+                        new ClaimMarkerPoint(64, -32)
+                ))
+        );
         ClaimMarkerDescriptor descriptor = new ClaimMarkerDescriptor(
-                "chunk:2:-3",
+                "land:00000000-0000-0000-0000-000000000001:world:2:-3",
                 "world",
-                32,
-                -48,
-                48,
-                -32,
+                geometry,
                 "Maison",
                 "<b>Maison</b>",
                 new ClaimMarkerStyle(
@@ -38,8 +55,19 @@ class BlueMapShapeMarkerFactoryTest {
         assertAll(
                 () -> assertEquals("Maison", marker.getLabel()),
                 () -> assertEquals(64.0F, marker.getShapeY()),
-                () -> assertEquals(new Vector2d(32, -48), marker.getShape().getMin()),
-                () -> assertEquals(new Vector2d(48, -32), marker.getShape().getMax()),
+                () -> assertArrayEquals(new Vector2d[]{
+                        new Vector2d(32, -48),
+                        new Vector2d(80, -48),
+                        new Vector2d(80, 0),
+                        new Vector2d(32, 0)
+                }, marker.getShape().getPoints()),
+                () -> assertEquals(1, marker.getHoles().size()),
+                () -> assertArrayEquals(new Vector2d[]{
+                        new Vector2d(48, -32),
+                        new Vector2d(48, -16),
+                        new Vector2d(64, -16),
+                        new Vector2d(64, -32)
+                }, marker.getHoles().iterator().next().getPoints()),
                 () -> assertEquals(2, marker.getLineWidth()),
                 () -> assertFalse(marker.isDepthTestEnabled()),
                 () -> assertEquals("<b>Maison</b>", marker.getDetail()),

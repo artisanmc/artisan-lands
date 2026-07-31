@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -22,21 +23,54 @@ class ClaimMarkerFactoryTest {
 
     private ClaimMarkerFactory factory;
     private final SChunk chunk = new SChunk("survival", "world", 2, -3);
+    private final ClaimMarkerGeometry geometry = new ClaimMarkerGeometry(
+            2, -3,
+            List.of(
+                    new ClaimMarkerPoint(32, -48),
+                    new ClaimMarkerPoint(80, -48),
+                    new ClaimMarkerPoint(80, 0),
+                    new ClaimMarkerPoint(32, 0)
+            ),
+            List.of(List.of(
+                    new ClaimMarkerPoint(48, -32),
+                    new ClaimMarkerPoint(48, -16),
+                    new ClaimMarkerPoint(64, -16),
+                    new ClaimMarkerPoint(64, -32)
+            ))
+    );
 
     @BeforeEach
     void setUp() {
         factory = new ClaimMarkerFactory(settings(), land -> "Alice & Bob");
     }
 
+    @Test
+    void createsRegionDescriptorWithGeometryAndEscapedMetadata() {
+        UUID landId = UUID.randomUUID();
+        PlayerLand land = new PlayerLand(landId, UUID.randomUUID(), "Maison <nord>");
+
+        ClaimMarkerDescriptor marker = factory.create("world", land, geometry).orElseThrow();
+
+        assertAll(
+                () -> assertEquals("land:" + landId + ":world:2:-3", marker.id()),
+                () -> assertEquals("world", marker.world()),
+                () -> assertEquals(geometry, marker.geometry()),
+                () -> assertEquals("Maison <nord>", marker.label()),
+                () -> assertEquals(
+                        "<b>Maison &lt;nord&gt;</b><br>Type: Joueur<br>Propriétaire: Alice &amp; Bob",
+                        marker.detail()
+                ),
+                () -> assertEquals(settings().style(LandType.PLAYER), marker.style())
+        );
+    }
+
     @ParameterizedTest
     @CsvSource({
-            "2,-3,32,-48,48,-32,chunk:2:-3",
-            "-2,3,-32,48,-16,64,chunk:-2:3"
+            "2,-3,32,-48",
+            "-2,3,-32,48"
     })
-    void createsExactChunkRectangles(
-            int chunkX, int chunkZ,
-            int minX, int minZ, int maxX, int maxZ,
-            String markerId
+    void keepsCompatibilityChunkMarkersWithSingleChunkGeometry(
+            int chunkX, int chunkZ, int minX, int minZ
     ) {
         SChunk chunk = new SChunk("survival", "world", chunkX, chunkZ);
         PlayerLand land = new PlayerLand(UUID.randomUUID(), UUID.randomUUID(), "Maison");
@@ -44,14 +78,18 @@ class ClaimMarkerFactoryTest {
         ClaimMarkerDescriptor marker = factory.create(chunk, land).orElseThrow();
 
         assertAll(
-                () -> assertEquals(markerId, marker.id()),
-                () -> assertEquals("world", marker.world()),
-                () -> assertEquals(minX, marker.minX()),
-                () -> assertEquals(minZ, marker.minZ()),
-                () -> assertEquals(maxX, marker.maxX()),
-                () -> assertEquals(maxZ, marker.maxZ()),
-                () -> assertEquals("Maison", marker.label()),
-                () -> assertEquals(settings().style(LandType.PLAYER), marker.style())
+                () -> assertEquals("chunk:" + chunkX + ":" + chunkZ, marker.id()),
+                () -> assertEquals(new ClaimMarkerGeometry(
+                        chunkX,
+                        chunkZ,
+                        List.of(
+                                new ClaimMarkerPoint(minX, minZ),
+                                new ClaimMarkerPoint(minX + 16, minZ),
+                                new ClaimMarkerPoint(minX + 16, minZ + 16),
+                                new ClaimMarkerPoint(minX, minZ + 16)
+                        ),
+                        List.of()
+                ), marker.geometry())
         );
     }
 
@@ -90,7 +128,7 @@ class ClaimMarkerFactoryTest {
     void createsEscapedPlayerDetail() {
         PlayerLand land = new PlayerLand(UUID.randomUUID(), UUID.randomUUID(), "Maison <nord>");
 
-        ClaimMarkerDescriptor marker = factory.create(chunk, land).orElseThrow();
+        ClaimMarkerDescriptor marker = factory.create("world", land, geometry).orElseThrow();
 
         assertEquals(
                 "<b>Maison &lt;nord&gt;</b><br>Type: Joueur<br>Propriétaire: Alice &amp; Bob",
