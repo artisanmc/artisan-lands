@@ -161,6 +161,10 @@ class ClaimMarkerSynchronizerTest {
         private final Set<String> removedKeys = new LinkedHashSet<>();
 
         @Override
+        public void replace(Collection<ClaimMarkerDescriptor> markers) {
+        }
+
+        @Override
         public void clear() {
             events.add("clear");
         }

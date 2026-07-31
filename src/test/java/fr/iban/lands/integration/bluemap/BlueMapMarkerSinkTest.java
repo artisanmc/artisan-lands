@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Collection;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
@@ -36,6 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -138,6 +140,97 @@ class BlueMapMarkerSinkTest {
                 () -> assertFalse(secondSets.containsKey("mslands-claims")),
                 () -> assertSame(unrelated, firstSets.get("other")),
                 () -> assertSame(unrelated, secondSets.get("other"))
+        );
+    }
+
+    @Test
+    void replaceAtomicallySwapsCompleteMarkerSetAndDropsStaleMarkers() {
+        Map<String, MarkerSet> sets = new HashMap<>();
+        MarkerSet previous = MarkerSet.builder().label("old").build();
+        previous.put("stale", mock(de.bluecolored.bluemap.api.markers.Marker.class));
+        sets.put(BlueMapMarkerSink.MARKER_SET_ID, previous);
+        BlueMapMap map = map("surface", sets);
+        when(api.getMaps()).thenReturn(List.of(map));
+        when(resolver.resolve(api, "world")).thenReturn(List.of(map));
+        BlueMapMarkerSink sink = sink(false);
+        sink.attach(api);
+
+        sink.replace(List.of(descriptor("region-a"), descriptor("region-b")));
+
+        MarkerSet replacement = sets.get(BlueMapMarkerSink.MARKER_SET_ID);
+        assertAll(
+                () -> assertNotSame(previous, replacement),
+                () -> assertEquals(Set.of("region-a", "region-b"), replacement.getMarkers().keySet())
+        );
+    }
+
+    @Test
+    void emptyReplacementRemovesStaleMarkerSetsFromEveryActiveMap() {
+        Map<String, MarkerSet> firstSets = new HashMap<>();
+        Map<String, MarkerSet> secondSets = new HashMap<>();
+        firstSets.put(BlueMapMarkerSink.MARKER_SET_ID, MarkerSet.builder().label("old").build());
+        secondSets.put(BlueMapMarkerSink.MARKER_SET_ID, MarkerSet.builder().label("old").build());
+        BlueMapMap first = map("surface", firstSets);
+        BlueMapMap second = map("caves", secondSets);
+        when(api.getMaps()).thenReturn(List.of(first, second));
+        BlueMapMarkerSink sink = sink(false);
+        sink.attach(api);
+
+        sink.replace(List.of());
+
+        assertAll(
+                () -> assertFalse(firstSets.containsKey(BlueMapMarkerSink.MARKER_SET_ID)),
+                () -> assertFalse(secondSets.containsKey(BlueMapMarkerSink.MARKER_SET_ID))
+        );
+    }
+
+    @Test
+    void replacementFactoryFailureLeavesExistingMarkerSetInstalled() {
+        Map<String, MarkerSet> sets = new HashMap<>();
+        MarkerSet previous = MarkerSet.builder().label("old").build();
+        sets.put(BlueMapMarkerSink.MARKER_SET_ID, previous);
+        BlueMapMap map = map("surface", sets);
+        ClaimMarkerDescriptor first = descriptor("region-a");
+        ClaimMarkerDescriptor second = descriptor("region-b");
+        BlueMapShapeMarkerFactory factory = mock(BlueMapShapeMarkerFactory.class);
+        when(factory.create(first)).thenReturn(mock(de.bluecolored.bluemap.api.markers.ShapeMarker.class));
+        when(factory.create(second)).thenThrow(new IllegalStateException("invalid shape"));
+        when(api.getMaps()).thenReturn(List.of(map));
+        when(resolver.resolve(api, "world")).thenReturn(List.of(map));
+        BlueMapMarkerSink sink = sink(false, resolver, factory);
+        sink.attach(api);
+
+        assertThrows(IllegalStateException.class, () -> sink.replace(List.of(first, second)));
+
+        assertSame(previous, sets.get(BlueMapMarkerSink.MARKER_SET_ID));
+    }
+
+    @Test
+    void replacementPublicationAttemptsEveryMapThenThrowsContextualFailures() {
+        IllegalStateException firstFailure = new IllegalStateException("first unavailable");
+        IllegalStateException laterFailure = new IllegalStateException("later unavailable");
+        BlueMapMap firstFailing = failingMap("broken-first", firstFailure);
+        Map<String, MarkerSet> healthySets = new HashMap<>();
+        BlueMapMap healthy = map("surface", healthySets);
+        BlueMapMap laterFailing = failingMap("broken-later", laterFailure);
+        when(api.getMaps()).thenReturn(List.of(firstFailing, healthy, laterFailing));
+        when(resolver.resolve(api, "world")).thenReturn(List.of(healthy));
+        BlueMapMarkerSink sink = sink(false);
+        sink.attach(api);
+
+        RuntimeException thrown = assertThrows(
+                RuntimeException.class,
+                () -> sink.replace(List.of(descriptor("region-a")))
+        );
+
+        assertAll(
+                () -> assertNotNull(healthySets.get(BlueMapMarkerSink.MARKER_SET_ID).get("region-a")),
+                () -> assertTrue(thrown.getMessage().contains("replace")),
+                () -> assertTrue(thrown.getMessage().contains("broken-first")),
+                () -> assertSame(firstFailure, thrown.getCause()),
+                () -> assertEquals(1, thrown.getSuppressed().length),
+                () -> assertTrue(thrown.getSuppressed()[0].getMessage().contains("broken-later")),
+                () -> assertSame(laterFailure, thrown.getSuppressed()[0].getCause())
         );
     }
 
@@ -463,6 +556,26 @@ class BlueMapMarkerSinkTest {
                 mapResolver,
                 logger
         );
+    }
+
+    private BlueMapMarkerSink sink(
+            boolean defaultHidden,
+            BlueMapMapResolver mapResolver,
+            BlueMapShapeMarkerFactory markerFactory
+    ) {
+        ClaimMarkerStyle style = new ClaimMarkerStyle(
+                new RgbColor(52, 152, 219),
+                new RgbColor(52, 152, 219),
+                0.25F
+        );
+        BlueMapSettings settings = new BlueMapSettings(
+                true,
+                "Territoires",
+                defaultHidden,
+                2,
+                Map.of(LandType.PLAYER, style)
+        );
+        return new BlueMapMarkerSink(settings, markerFactory, mapResolver, logger);
     }
 
     private BlueMapMap map(String id, Map<String, MarkerSet> markerSets) {

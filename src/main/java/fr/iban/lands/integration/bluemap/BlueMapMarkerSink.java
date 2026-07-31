@@ -8,7 +8,11 @@ import fr.iban.lands.integration.claims.ClaimMarkerDescriptor;
 import fr.iban.lands.integration.claims.ClaimMarkerSink;
 
 import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.logging.Logger;
 
 public final class BlueMapMarkerSink implements ClaimMarkerSink {
@@ -45,6 +49,45 @@ public final class BlueMapMarkerSink implements ClaimMarkerSink {
         if (activeApi == api) {
             activeApi = null;
         }
+    }
+
+    @Override
+    public synchronized void replace(Collection<ClaimMarkerDescriptor> markers) {
+        BlueMapAPI api = activeApi;
+        if (api == null) {
+            return;
+        }
+
+        Set<BlueMapMap> targetMaps = new LinkedHashSet<>(api.getMaps());
+        Map<BlueMapMap, MarkerSet> replacements = new LinkedHashMap<>();
+        for (ClaimMarkerDescriptor marker : markers) {
+            Collection<BlueMapMap> resolved = mapResolver.resolve(api, marker.world());
+            if (resolved.isEmpty()) {
+                warnUnresolved(marker.world(), marker.id());
+                continue;
+            }
+
+            targetMaps.addAll(resolved);
+            for (BlueMapMap map : resolved) {
+                MarkerSet replacement = replacements.computeIfAbsent(map, ignored -> newMarkerSet());
+                replacement.put(marker.id(), markerFactory.create(marker));
+            }
+        }
+
+        RuntimeException firstFailure = null;
+        for (BlueMapMap map : targetMaps) {
+            try {
+                MarkerSet replacement = replacements.get(map);
+                if (replacement == null) {
+                    map.getMarkerSets().remove(MARKER_SET_ID);
+                } else {
+                    map.getMarkerSets().put(MARKER_SET_ID, replacement);
+                }
+            } catch (RuntimeException exception) {
+                firstFailure = collectFailure(firstFailure, replacementFailure(map, exception));
+            }
+        }
+        throwIfFailed(firstFailure);
     }
 
     @Override
@@ -150,12 +193,16 @@ public final class BlueMapMarkerSink implements ClaimMarkerSink {
     private MarkerSet markerSet(BlueMapMap map) {
         return map.getMarkerSets().computeIfAbsent(
                 MARKER_SET_ID,
-                ignored -> MarkerSet.builder()
-                        .label(settings.markerSetLabel())
-                        .toggleable(true)
-                        .defaultHidden(settings.defaultHidden())
-                        .build()
+                ignored -> newMarkerSet()
         );
+    }
+
+    private MarkerSet newMarkerSet() {
+        return MarkerSet.builder()
+                .label(settings.markerSetLabel())
+                .toggleable(true)
+                .defaultHidden(settings.defaultHidden())
+                .build();
     }
 
     private void warnUnresolved(String world, String markerId) {
@@ -176,6 +223,14 @@ public final class BlueMapMarkerSink implements ClaimMarkerSink {
                 "Failed to " + operation + " BlueMap marker '" + markerId
                         + "' on map '" + mapId(map, exception)
                         + "' for world '" + world + "'.",
+                exception
+        );
+    }
+
+    private RuntimeException replacementFailure(BlueMapMap map, RuntimeException exception) {
+        return new IllegalStateException(
+                "Failed to replace BlueMap marker set '" + MARKER_SET_ID
+                        + "' on map '" + mapId(map, exception) + "'.",
                 exception
         );
     }
