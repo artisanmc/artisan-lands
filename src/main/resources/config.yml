@@ -5,6 +5,12 @@ enable-creeper-grief: false
 
 default-claim-limit: 5
 
+visualization:
+  # Claim display radius in chunks (1-16). No distant chunks are loaded.
+  view-distance-chunks: 10
+  # Shared panel limit for claims and sublands (4-1024); nearest in 3D take priority.
+  max-panels: 512
+
 guild-claim-prices:
   # Tranche 0 à 4
   0: 0
@@ -31,3 +37,8 @@ bluemap:
       line-color: "#E74C3C"
       fill-color: "#E74C3C"
       fill-opacity: 0.25
+
+# Nether portals lit above Y=128 outside a claim are broken after the delay.
+nether-roof-portals:
+  enabled: true
+  break-delay-minutes: 10
