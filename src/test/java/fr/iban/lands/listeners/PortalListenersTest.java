@@ -3,6 +3,8 @@ package fr.iban.lands.listeners;
 import com.tcoded.folialib.impl.PlatformScheduler;
 import fr.iban.lands.LandsPlugin;
 import fr.iban.lands.api.LandRepository;
+import fr.iban.lands.enums.Flag;
+import fr.iban.lands.model.land.Land;
 import fr.iban.lands.model.land.PlayerLand;
 import fr.iban.lands.model.land.SystemLand;
 import org.bukkit.Location;
@@ -20,8 +22,11 @@ import org.mockito.ArgumentCaptor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -53,9 +58,10 @@ class PortalListenersTest {
     }
 
     @Test
-    void roofPortalOutsideClaimIsBrokenAfterDelayAndPlayerWarned() {
+    void roofPortalInFlaggedLandIsBrokenAfterDelayAndPlayerWarned() {
         Location location = new Location(nether, 0, 130, 0);
-        when(landRepository.getLandAt(location)).thenReturn(mock(SystemLand.class));
+        Land land = land(true);
+        when(landRepository.getLandAt(location)).thenReturn(land);
 
         listener.onNetherRoofPortalCreate(fireEvent(location));
 
@@ -67,8 +73,9 @@ class PortalListenersTest {
     @Test
     void roofPortalClaimedBeforeDelayIsKept() {
         Location location = new Location(nether, 0, 130, 0);
-        when(landRepository.getLandAt(location))
-                .thenReturn(mock(SystemLand.class), mock(PlayerLand.class));
+        Land flagged = land(true);
+        Land unflagged = land(false);
+        when(landRepository.getLandAt(location)).thenReturn(flagged, unflagged);
 
         listener.onNetherRoofPortalCreate(fireEvent(location));
 
@@ -77,9 +84,10 @@ class PortalListenersTest {
     }
 
     @Test
-    void roofPortalInsideClaimIsKept() {
+    void roofPortalInUnflaggedLandIsKept() {
         Location location = new Location(nether, 0, 130, 0);
-        when(landRepository.getLandAt(location)).thenReturn(mock(PlayerLand.class));
+        Land land = land(false);
+        when(landRepository.getLandAt(location)).thenReturn(land);
 
         listener.onNetherRoofPortalCreate(fireEvent(location));
 
@@ -90,7 +98,8 @@ class PortalListenersTest {
     @Test
     void portalBelowRoofIsKept() {
         Location location = new Location(nether, 0, 64, 0);
-        when(landRepository.getLandAt(location)).thenReturn(mock(SystemLand.class));
+        Land land = land(true);
+        when(landRepository.getLandAt(location)).thenReturn(land);
 
         listener.onNetherRoofPortalCreate(fireEvent(location));
 
@@ -98,14 +107,15 @@ class PortalListenersTest {
     }
 
     @Test
-    void ruleCanBeDisabled() {
-        config.set("nether-roof-portals.enabled", false);
-        Location location = new Location(nether, 0, 130, 0);
-        when(landRepository.getLandAt(location)).thenReturn(mock(SystemLand.class));
+    void flagIsOnlyAvailableOnSystemLands() {
+        assertTrue(Flag.NETHER_ROOF_PORTAL_DECAY.isEnabled(new SystemLand(UUID.randomUUID(), "test")));
+        assertFalse(Flag.NETHER_ROOF_PORTAL_DECAY.isEnabled(new PlayerLand(UUID.randomUUID(), UUID.randomUUID(), "test")));
+    }
 
-        listener.onNetherRoofPortalCreate(fireEvent(location));
-
-        verify(scheduler, never()).runAtLocationLater(any(Location.class), any(Runnable.class), anyLong(), any());
+    private Land land(boolean decayFlag) {
+        Land land = mock(Land.class);
+        when(land.hasFlag(Flag.NETHER_ROOF_PORTAL_DECAY)).thenReturn(decayFlag);
+        return land;
     }
 
     private PortalCreateEvent fireEvent(Location location) {

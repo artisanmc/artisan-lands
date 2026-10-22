@@ -4,7 +4,7 @@ import fr.iban.lands.LandsPlugin;
 import fr.iban.lands.api.LandRepository;
 import fr.iban.lands.enums.Action;
 import fr.iban.lands.model.land.Land;
-import fr.iban.lands.model.land.SystemLand;
+import fr.iban.lands.enums.Flag;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World.Environment;
@@ -53,13 +53,12 @@ public class PortalListeners implements Listener {
     public void onNetherRoofPortalCreate(PortalCreateEvent event) {
         if (event.getReason() != CreateReason.FIRE
                 || event.getWorld().getEnvironment() != Environment.NETHER
-                || event.getBlocks().isEmpty()
-                || !plugin.getConfig().getBoolean("nether-roof-portals.enabled", true)) {
+                || event.getBlocks().isEmpty()) {
             return;
         }
 
         Location location = event.getBlocks().getFirst().getLocation();
-        if (location.getY() < NETHER_ROOF_Y || isClaimed(location)) {
+        if (location.getY() < NETHER_ROOF_Y || !hasDecayFlag(location)) {
             return;
         }
 
@@ -71,7 +70,7 @@ public class PortalListeners implements Listener {
 
         List<BlockState> blocks = event.getBlocks();
         plugin.getScheduler().runAtLocationLater(location, () -> {
-            if (isClaimed(location)) {
+            if (!hasDecayFlag(location)) {
                 return;
             }
             blocks.stream()
@@ -81,7 +80,7 @@ public class PortalListeners implements Listener {
         }, delay, TimeUnit.MINUTES);
     }
 
-    private boolean isClaimed(Location location) {
-        return !(landRepository.getLandAt(location) instanceof SystemLand);
+    private boolean hasDecayFlag(Location location) {
+        return landRepository.getLandAt(location).hasFlag(Flag.NETHER_ROOF_PORTAL_DECAY);
     }
 }

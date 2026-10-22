@@ -38,7 +38,6 @@ bluemap:
       fill-color: "#E74C3C"
       fill-opacity: 0.25
 
-# Nether portals lit above Y=128 outside a claim are broken after the delay.
+# Nether portals lit above Y=128 in a land with the NETHER_ROOF_PORTAL_DECAY flag are broken after the delay.
 nether-roof-portals:
-  enabled: true
   break-delay-minutes: 10
