@@ -46,6 +46,20 @@ import static org.mockito.Mockito.when;
 class LandsPluginTest {
 
     @Test
+    void enableFailureShutsServerDown() {
+        LandsPlugin plugin = pluginWithLogger();
+        Server server = mock(Server.class);
+        NoClassDefFoundError failure = new NoClassDefFoundError("com/tcoded/folialib/FoliaLib");
+        doReturn(server).when(plugin).getServer();
+        doThrow(failure).when(plugin).saveDefaultConfig();
+
+        assertDoesNotThrow(plugin::onEnable);
+
+        verify(server).shutdown();
+        verify(plugin.getLogger()).log(eq(Level.SEVERE), anyString(), same(failure));
+    }
+
+    @Test
     void missingBlueMapClassFallsBackWithoutQueueingARebuild() {
         SetupContext context = configuredPlugin();
         NoClassDefFoundError failure = new NoClassDefFoundError("BlueMap API missing");

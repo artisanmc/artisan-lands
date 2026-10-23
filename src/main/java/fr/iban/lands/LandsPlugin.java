@@ -58,6 +58,15 @@ public final class LandsPlugin extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        try {
+            enable();
+        } catch (Throwable t) {
+            getLogger().log(Level.SEVERE, "MSLands n'a pas pu démarrer : arrêt du serveur pour ne pas laisser les claims sans protection.", t);
+            getServer().shutdown();
+        }
+    }
+
+    private void enable() {
         saveDefaultConfig();
         instance = this;
         foliaLib = new FoliaLib(this);
