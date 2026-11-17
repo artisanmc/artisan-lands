@@ -1,10 +1,10 @@
 package fr.iban.lands.listeners;
 
 import com.ghostchu.quickshop.api.QuickShopAPI;
-import com.ghostchu.quickshop.api.event.ShopPreCreateEvent;
-import com.ghostchu.quickshop.api.event.ShopSuccessPurchaseEvent;
+import com.ghostchu.quickshop.api.event.economy.ShopSuccessPurchaseEvent;
+import com.ghostchu.quickshop.api.event.Phase;
+import com.ghostchu.quickshop.api.event.management.ShopCreateEvent;
 import com.ghostchu.quickshop.api.shop.Shop;
-import com.ghostchu.quickshop.api.shop.ShopType;
 import com.ghostchu.quickshop.api.shop.permission.BuiltInShopPermissionGroup;
 import com.ghostchu.quickshop.util.Util;
 import fr.iban.lands.LandsPlugin;
@@ -14,6 +14,7 @@ import fr.iban.lands.enums.Flag;
 import fr.iban.lands.model.land.GuildLand;
 import fr.iban.lands.model.land.Land;
 import net.milkbowl.vault.economy.EconomyResponse;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -42,16 +43,18 @@ public class ShopListeners implements Listener {
     }
 
     @EventHandler
-    public void onShopCreate(ShopPreCreateEvent e) {
-        Land land = landRepository.getLandAt(e.getLocation());
-        Optional<Player> bukkitPlayer = e.getCreator().getBukkitPlayer();
+    public void onShopCreate(ShopCreateEvent e) {
+        if (!e.isPhase(Phase.PRE_CANCELLABLE)) return;
+
+        Land land = landRepository.getLandAt(e.location());
+        Optional<Player> bukkitPlayer = e.user().getBukkitPlayer();
 
         if (bukkitPlayer.isEmpty()) {
             return;
         }
 
         if (!land.isBypassing(bukkitPlayer.get(), Action.SHOP_CREATE)) {
-            e.setCancelled(true, "Vous ne pouvez pas créer de shop ici.");
+            e.setCancelled(true, Component.text("Vous ne pouvez pas créer de shop ici."));
         }
     }
 
@@ -134,13 +137,13 @@ public class ShopListeners implements Listener {
     public void onPurchase(ShopSuccessPurchaseEvent e) {
         Shop shop = e.getShop();
 
-        if (shop.getShopType() == ShopType.BUYING) return;
+        if (shop.isBuying()) return;
 
         if (plugin.getEconomy() == null) return;
 
         if (!plugin.isGuildsHookEnabled()) return;
 
-        if (landRepository.getLandAt(e.getShop().getLocation()) instanceof GuildLand guildLand) {
+        if (landRepository.getLandAt(shop.getShopBlock().getLocation()) instanceof GuildLand guildLand) {
             UUID seller = shop.getOwner().getUniqueId();
 
             if (!guildLand.hasFlag(Flag.SHOP_MONEY_TO_GUILD_BANK) || seller == null) return;

@@ -11,6 +11,10 @@ plugins {
 
 repositories {
     mavenLocal()
+    maven {
+        name = "CodeMCQuickShop"
+        url = uri("https://repo.codemc.io/repository/ghost-chu/")
+    }
     maven { url = uri("https://repo.papermc.io/repository/maven-public/") }
     maven { url = uri("https://oss.sonatype.org/content/groups/public/") }
     maven { url = uri("https://repo.codemc.io/repository/maven-public/") }
@@ -27,18 +31,16 @@ dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
     compileOnly("com.github.IbanEtchep.MSCore:core-paper:1.1.1")
     compileOnly("com.github.IbanEtchep:MSGuilds:1.1.0")
-    compileOnly("com.ghostchu:quickshop-api:6.1.0.1")
-    compileOnly("com.ghostchu:quickshop-bukkit:6.1.0.1")
+    compileOnly("com.ghostchu:quickshop-hikari:6.3.0.2")
     compileOnly("com.arcaniax:HeadDatabase-API:1.3.2")
     compileOnly("com.github.MilkBowl:VaultAPI:1.7.1")
-    compileOnly("com.github.retrooper:packetevents-spigot:2.6.0")
     compileOnly("de.bluecolored:bluemap-api:2.7.7")
 
     implementation("com.tcoded:FoliaLib:0.5.1")
     implementation("net.objecthunter:exp4j:0.4.8")
-    implementation("io.github.revxrsal:lamp.common:4.0.0-rc.16")
-    implementation("io.github.revxrsal:lamp.bukkit:4.0.0-rc.16")
-    implementation("io.github.revxrsal:lamp.brigadier:4.0.0-rc.16")
+    implementation("io.github.revxrsal:lamp.common:4.0.0-rc.18")
+    implementation("io.github.revxrsal:lamp.bukkit:4.0.0-rc.18")
+    implementation("io.github.revxrsal:lamp.brigadier:4.0.0-rc.18")
 
     testImplementation(platform("org.junit:junit-bom:5.14.3"))
     testImplementation("org.junit.jupiter:junit-jupiter")

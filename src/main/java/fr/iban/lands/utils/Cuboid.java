@@ -699,30 +699,36 @@ public class Cuboid implements Iterable<Block>, Cloneable, ConfigurationSerializ
     }
 
     public List<Location> getCubeEdgeLocations(double distanceBetweenPoints) {
-        Location corner1 = getLowerNE();
-        Location corner2 = getUpperSW().clone().add(1, 1, 1);
-        List<Location> result = new ArrayList<>();
-        double minX = Math.min(corner1.getX(), corner2.getX());
-        double minY = Math.min(corner1.getY(), corner2.getY());
-        double minZ = Math.min(corner1.getZ(), corner2.getZ());
-        double maxX = Math.max(corner1.getX(), corner2.getX());
-        double maxY = Math.max(corner1.getY(), corner2.getY());
-        double maxZ = Math.max(corner1.getZ(), corner2.getZ());
-
-        for (double x = minX; x <= maxX; x += distanceBetweenPoints) {
-            for (double y = minY; y <= maxY; y += distanceBetweenPoints) {
-                for (double z = minZ; z <= maxZ; z += distanceBetweenPoints) {
-                    int components = 0;
-                    if (x == minX || x == maxX) components++;
-                    if (y == minY || y == maxY) components++;
-                    if (z == minZ || z == maxZ) components++;
-                    if (components >= 2) {
-                        result.add(new Location(getWorld(), x, y, z));
-                    }
-                }
+        if (!Double.isFinite(distanceBetweenPoints) || distanceBetweenPoints <= 0) {
+            throw new IllegalArgumentException("Point spacing must be finite and positive");
+        }
+        World world = getWorld();
+        Set<Location> result = new LinkedHashSet<>();
+        double[] xs = {x1, (double) x2 + 1};
+        double[] ys = {y1, (double) y2 + 1};
+        double[] zs = {z1, (double) z2 + 1};
+        for (int i = 0; i < 2; i++) {
+            for (int j = 0; j < 2; j++) {
+                addEdgeLocations(result, world, xs[0], ys[i], zs[j], xs[1], ys[i], zs[j], distanceBetweenPoints);
+                addEdgeLocations(result, world, xs[i], ys[0], zs[j], xs[i], ys[1], zs[j], distanceBetweenPoints);
+                addEdgeLocations(result, world, xs[i], ys[j], zs[0], xs[i], ys[j], zs[1], distanceBetweenPoints);
             }
         }
+        return new ArrayList<>(result);
+    }
 
-        return result;
+    private static void addEdgeLocations(Set<Location> result, World world,
+                                         double x1, double y1, double z1,
+                                         double x2, double y2, double z2, double spacing) {
+        double length = Math.max(x2 - x1, Math.max(y2 - y1, z2 - z1));
+        // Twelve edges with at most 341 points each keep the preview below 4096 particles.
+        int segments = (int) Math.min(340, Math.ceil(length / spacing));
+        double step = Math.max(spacing, length / 340);
+        for (int i = 0; i < segments; i++) {
+            double fraction = Math.min(1, i * step / length);
+            result.add(new Location(world, x1 + (x2 - x1) * fraction,
+                    y1 + (y2 - y1) * fraction, z1 + (z2 - z1) * fraction));
+        }
+        result.add(new Location(world, x2, y2, z2));
     }
 }

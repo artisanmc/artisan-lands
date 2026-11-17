@@ -1,6 +1,5 @@
 package fr.iban.lands.utils;
 
-import com.tcoded.folialib.wrapper.task.WrappedTask;
 import fr.iban.bukkitcore.CoreBukkitPlugin;
 import fr.iban.lands.LandsPlugin;
 import fr.iban.lands.api.LandRepository;
@@ -11,10 +10,7 @@ import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Location;
-import org.bukkit.Particle;
 import org.bukkit.entity.Player;
-
-import java.util.List;
 
 public class CuboidSelector {
 
@@ -24,7 +20,6 @@ public class CuboidSelector {
     private Location pos2;
 
     private final Runnable quitCallback;
-    private WrappedTask particleTask;
 
     private final LandsPlugin plugin;
     private final LandRepository landRepository;
@@ -39,7 +34,7 @@ public class CuboidSelector {
         Cuboid currentCuboid = land.getCuboid();
         this.pos1 = currentCuboid.getLowerNE();
         this.pos2 = currentCuboid.getUpperSW();
-        showParticules(currentCuboid);
+        showPreview(currentCuboid);
     }
 
     public void startSelecting() {
@@ -50,7 +45,7 @@ public class CuboidSelector {
             String text = ChatUtils.toPlainText(component);
 
             if (text.equalsIgnoreCase("pos1")) {
-                cancelTask();
+                clearPreview();
                 pos1 = player.getLocation();
                 player.sendMessage("§a§lPosition 1 définie.");
 
@@ -60,10 +55,10 @@ public class CuboidSelector {
 
                 Cuboid cuboid = getCuboid();
                 if (cuboid != null) {
-                    showParticules(cuboid);
+                    showPreview(cuboid);
                 }
             } else if (text.equalsIgnoreCase("pos2")) {
-                cancelTask();
+                clearPreview();
                 pos2 = player.getLocation();
                 player.sendMessage("§a§lPosition 2 définie.");
 
@@ -73,12 +68,13 @@ public class CuboidSelector {
 
                 Cuboid cuboid = getCuboid();
                 if (cuboid != null) {
-                    showParticules(cuboid);
+                    showPreview(cuboid);
                 }
             } else if (text.equalsIgnoreCase("sauvegarder")) {
                 Cuboid cuboid = getCuboid();
                 boolean isValid = verif(cuboid);
-                if (isValid) {cancelTask();
+                if (isValid) {
+                    clearPreview();
                     land.setCuboid(cuboid, LandsPlugin.getInstance().getServerName());
                     landRepository.updateLand(land);
                     player.sendMessage("§a§lLa selection a été sauvegardée avec succès.");
@@ -86,7 +82,7 @@ public class CuboidSelector {
                     plugin.getTextInputs().remove(player.getUniqueId());
                 }
             } else if (text.startsWith("quit")) {
-                cancelTask();
+                clearPreview();
                 quitCallback.run();
                 plugin.getTextInputs().remove(player.getUniqueId());
             } else {
@@ -96,10 +92,8 @@ public class CuboidSelector {
         });
     }
 
-    private void cancelTask() {
-        if (particleTask != null) {
-            particleTask.cancel();
-        }
+    private void clearPreview() {
+        plugin.getSelectionPreview().clear(player);
     }
 
     private Component getHelpText() {
@@ -167,21 +161,7 @@ public class CuboidSelector {
         return true;
     }
 
-    private void showParticules(Cuboid cuboid) {
-        List<Location> edgeLocations = cuboid.getCubeEdgeLocations(0.5);
-
-        if (particleTask != null) {
-            particleTask.cancel();
-        }
-
-        particleTask = plugin.getScheduler().runTimer(() -> {
-            for (Location location : edgeLocations) {
-                showParticle(location);
-            }
-        }, 1L, 10L);
-    }
-
-    private void showParticle(Location loc) {
-        player.spawnParticle(Particle.HAPPY_VILLAGER, loc, 1);
+    private void showPreview(Cuboid cuboid) {
+        plugin.getSelectionPreview().show(player, cuboid);
     }
 }

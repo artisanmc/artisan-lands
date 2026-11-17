@@ -8,6 +8,7 @@ import fr.iban.lands.integration.claims.ClaimMarkerDescriptor;
 import fr.iban.lands.integration.claims.ClaimMarkerSink;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -60,10 +61,13 @@ public final class BlueMapMarkerSink implements ClaimMarkerSink {
 
         Set<BlueMapMap> targetMaps = new LinkedHashSet<>(api.getMaps());
         Map<BlueMapMap, MarkerSet> replacements = new LinkedHashMap<>();
+        Map<String, Collection<BlueMapMap>> mapsByWorld = new HashMap<>();
         for (ClaimMarkerDescriptor marker : markers) {
-            Collection<BlueMapMap> resolved = mapResolver.resolve(api, marker.world());
+            Collection<BlueMapMap> resolved = mapsByWorld.computeIfAbsent(
+                    marker.world(),
+                    world -> resolveMaps(api, world)
+            );
             if (resolved.isEmpty()) {
-                warnUnresolved(marker.world(), marker.id());
                 continue;
             }
 
@@ -131,11 +135,13 @@ public final class BlueMapMarkerSink implements ClaimMarkerSink {
                 .build();
     }
 
-    private void warnUnresolved(String world, String markerId) {
-        logger.warning(
-                "Could not resolve BlueMap maps for world '" + world
-                        + "' while updating marker '" + markerId + "'."
-        );
+    private Collection<BlueMapMap> resolveMaps(BlueMapAPI api, String world) {
+        Collection<BlueMapMap> resolved = mapResolver.resolve(api, world);
+        if (resolved.isEmpty()) {
+            logger.fine(() -> "Skipping claims for world '" + world
+                    + "' because it has no BlueMap map.");
+        }
+        return resolved;
     }
 
     private RuntimeException replacementFailure(BlueMapMap map, RuntimeException exception) {

@@ -17,6 +17,7 @@ import fr.iban.lands.service.LandRepositoryImpl;
 import fr.iban.lands.service.LandServiceImpl;
 import fr.iban.lands.task.PotionEffectTask;
 import fr.iban.lands.utils.Head;
+import fr.iban.lands.utils.CuboidSelectionPreview;
 import fr.iban.lands.utils.LandMap;
 import fr.iban.lands.utils.SeeClaims;
 import net.milkbowl.vault.economy.Economy;
@@ -54,6 +55,7 @@ public final class LandsPlugin extends JavaPlugin {
 
     private final Map<UUID, SeeClaims> seeClaims = new HashMap<>();
     private LandMap landMap;
+    private CuboidSelectionPreview selectionPreview;
 
 
     @Override
@@ -78,6 +80,7 @@ public final class LandsPlugin extends JavaPlugin {
         landService = new LandServiceImpl(this);
 
         landMap = new LandMap(landRepository);
+        selectionPreview = new CuboidSelectionPreview(this);
 
         setupEconomy();
         hookGuilds();
@@ -86,6 +89,7 @@ public final class LandsPlugin extends JavaPlugin {
         registerCommands();
 
         registerListeners(
+                selectionPreview,
                 new BlockBreakListener(this),
                 new BlockPlaceListener(this),
                 new CommandListener(this),
@@ -122,6 +126,9 @@ public final class LandsPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (selectionPreview != null) {
+            selectionPreview.close();
+        }
         shutdownComponents(claimVisualization, singleThreadExecutor, seeClaims.values());
     }
 
@@ -304,6 +311,10 @@ public final class LandsPlugin extends JavaPlugin {
 
     public LandMap getLandMap() {
         return landMap;
+    }
+
+    public CuboidSelectionPreview getSelectionPreview() {
+        return selectionPreview;
     }
 
     public Map<UUID, SeeClaims> getSeeClaims() {

@@ -50,7 +50,7 @@ public class LandServiceImpl implements LandService {
             case SUBLAND -> new SubLand(id, name);
         };
 
-        if (isInvalidName(creator, land)) {
+        if (isInvalidName(creator, land, name)) {
             return null;
         }
 
@@ -76,20 +76,20 @@ public class LandServiceImpl implements LandService {
         }
     }
 
-    private boolean isInvalidName(Player player, Land land) {
-        if (land.getName().length() > 16) {
+    private boolean isInvalidName(Player player, Land land, String name) {
+        if (name.length() > 16) {
             player.sendMessage("§cLe nom du territoire ne doit pas dépasser 16 caractères.");
             return true;
         }
 
-        if (land.getName().contains(" ")) {
+        if (name.isEmpty() || name.contains(" ")) {
             player.sendMessage("§cLe nom du territoire ne doit pas contenir d'espaces.");
             return true;
         }
 
         // Find a land with the same name, type and owner
         Land sameExistingLand = landRepository.getLands().stream()
-                .filter(l -> l.getName().equalsIgnoreCase(land.getName()))
+                .filter(l -> l.getName().equalsIgnoreCase(name))
                 .filter(l -> !l.getId().equals(land.getId()))
                 .filter(l -> l.getType() == land.getType())
                 .filter(l -> Objects.equals(l.getOwner(), land.getOwner()))
@@ -105,11 +105,13 @@ public class LandServiceImpl implements LandService {
 
     @Override
     public void renameLand(Land land, Player player, String name) {
-        if (isInvalidName(player, land)) {
+        String newName = name.trim();
+
+        if (isInvalidName(player, land, newName)) {
             return;
         }
 
-        land.setName(name);
+        land.setName(newName);
         landRepository.updateLand(land);
         plugin.getClaimVisualization().syncLand(land);
         player.sendMessage("§aLe nom du territoire a bien été modifié.");

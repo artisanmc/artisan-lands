@@ -80,10 +80,10 @@ public class TrustsManageMenu extends PaginatedMenu {
                         return;
                     }
 
-                    Player target = Bukkit.getPlayer(text);
+                    OfflinePlayer target = Bukkit.getOfflinePlayerIfCached(text);
 
                     if (target == null) {
-                        player.sendMessage("§cCe joueur n'est pas en ligne.");
+                        player.sendMessage("§cLe joueur n'a pas été trouvé.");
                         open();
                     } else {
                         new PlayerTrustEditMenu(player, target.getUniqueId(), land, plugin, this, null).open();

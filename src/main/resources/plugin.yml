@@ -4,6 +4,6 @@ main: fr.iban.lands.LandsPlugin
 api-version: 1.21
 authors: [ Iban ]
 description: Plugin de protections
-depend: [ Core, packetevents ]
-softdepend: [ QuickShop, HeadDatabase, MSGuilds, Vault, BlueMap ]
+depend: [ Core ]
+softdepend: [ QuickShop-Hikari, HeadDatabase, MSGuilds, Vault, BlueMap ]
 folia-supported: true

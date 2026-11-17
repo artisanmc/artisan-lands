@@ -43,6 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -192,7 +193,7 @@ class BlueMapMarkerSinkTest {
     }
 
     @Test
-    void unresolvedWorldProducesNoMarkerAndOneWarning() {
+    void unmappedBlueMapWorldProducesNoWarning() {
         Map<String, MarkerSet> sets = setsWithStaleClaims();
         BlueMapMap map = map("surface", sets);
         when(api.getMaps()).thenReturn(List.of(map));
@@ -204,11 +205,23 @@ class BlueMapMarkerSinkTest {
 
         assertAll(
                 () -> assertFalse(sets.containsKey(BlueMapMarkerSink.MARKER_SET_ID)),
-                () -> assertEquals(1, records.size()),
-                () -> assertEquals(Level.WARNING, records.getFirst().getLevel()),
-                () -> assertTrue(records.getFirst().getMessage().contains("missing")),
-                () -> assertTrue(records.getFirst().getMessage().contains("region-a"))
+                () -> assertTrue(records.stream().noneMatch(record -> record.getLevel() == Level.WARNING))
         );
+    }
+
+    @Test
+    void replaceResolvesEachClaimWorldOnlyOnce() {
+        when(api.getMaps()).thenReturn(List.of());
+        when(resolver.resolve(api, "missing")).thenReturn(List.of());
+        BlueMapMarkerSink sink = sink(false);
+        sink.attach(api);
+
+        sink.replace(List.of(
+                descriptor("region-a", "missing"),
+                descriptor("region-b", "missing")
+        ));
+
+        verify(resolver).resolve(api, "missing");
     }
 
     @Test
