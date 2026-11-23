@@ -51,7 +51,7 @@ elements:
         - open_menu: { menu_id: claims, context: { land: "{land}" } }
     states:
       - if:
-          - placeholder_equals: { placeholder: "{l.area_set}", value: "true" }
+          - expression: 'l.area_set == "true"'
         material: PLAYER_HEAD
         head: "hdb:775"
         title:
@@ -71,7 +71,7 @@ elements:
             - close_menu
             - lands:select_cuboid: { land: "{land}" }
       - if:
-          - placeholder_equals: { placeholder: "{l.area_elsewhere}", value: "true" }
+          - expression: 'l.area_elsewhere == "true"'
         material: PLAYER_HEAD
         head: "hdb:775"
         title:
@@ -89,7 +89,7 @@ elements:
             - close_menu
             - lands:select_cuboid: { land: "{land}" }
       - if:
-          - placeholder_equals: { placeholder: "{l.subland}", value: "true" }
+          - expression: 'l.subland == "true"'
         material: PLAYER_HEAD
         head: "hdb:775"
         title:
@@ -176,7 +176,7 @@ elements:
         - open_menu: { menu_id: main, context: { scope: "sublands", owner: "", parent: "{land}" } }
     states:
       - if:
-          - placeholder_equals: { placeholder: "{l.can_sublands}", value: "false" }
+          - expression: 'l.can_sublands == "false"'
         material: GREEN_STAINED_GLASS_PANE
         title: " "
   - id: back

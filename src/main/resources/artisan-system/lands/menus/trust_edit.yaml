@@ -34,14 +34,14 @@ elements:
     title: "<dark_green><bold>{w.name}"
     states:
       - if:
-          - placeholder_equals: { placeholder: "{w.kind}", value: "global" }
+          - expression: 'w.kind == "global"'
         material: PLAYER_HEAD
         head: "hdb:2981"
         title:
           en: "<dark_green><bold>Global permissions"
           fr: "<dark_green><bold>Permissions globales"
       - if:
-          - placeholder_equals: { placeholder: "{w.kind}", value: "guild" }
+          - expression: 'w.kind == "guild"'
         material: PLAYER_HEAD
         head: "hdb:51046"
         title:
@@ -63,7 +63,7 @@ elements:
         - set_arg: { arg: refresh, value: "{p.key}" }
     states:
       - if:
-          - placeholder_equals: { placeholder: "{p.kind}", value: "group" }
+          - expression: 'p.kind == "group"'
         material: "{p.icon}"
         title: "<white><bold>{p.name}"
         lore:
@@ -77,7 +77,7 @@ elements:
           left:
             - open_menu: { menu_id: trust_edit, context: { land: "{land}", target: "{target}", group: "{p.key}" } }
       - if:
-          - placeholder_equals: { placeholder: "{p.granted}", value: "true" }
+          - expression: 'p.granted == "true"'
         material: "{p.icon}"
         title: "<dark_green>{p.name}"
         lore:

@@ -44,7 +44,7 @@ elements:
         - close_menu
     states:
       - if:
-          - placeholder_equals: { placeholder: "{from}", value: "menu" }
+          - expression: 'from == "menu"'
         material: LIME_CONCRETE
         title:
           en: "<green>Delete"
@@ -64,7 +64,7 @@ elements:
         - close_menu
     states:
       - if:
-          - placeholder_equals: { placeholder: "{from}", value: "menu" }
+          - expression: 'from == "menu"'
         material: RED_CONCRETE
         title:
           en: "<red>Cancel"

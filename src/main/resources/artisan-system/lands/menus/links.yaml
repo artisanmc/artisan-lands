@@ -46,7 +46,7 @@ elements:
         - open_menu: { menu_id: link_select, context: { land: "{land}", type: "globaltrust" } }
     states:
       - if:
-          - placeholder_equals: { placeholder: "{k.linked}", value: "true" }
+          - expression: 'k.linked == "true"'
         material: PLAYER_HEAD
         head: "hdb:2981"
         title:
@@ -91,7 +91,7 @@ elements:
         - open_menu: { menu_id: link_select, context: { land: "{land}", type: "trusts" } }
     states:
       - if:
-          - placeholder_equals: { placeholder: "{k.linked}", value: "true" }
+          - expression: 'k.linked == "true"'
         material: PLAYER_HEAD
         head: "hdb:41548"
         title:
@@ -136,7 +136,7 @@ elements:
         - open_menu: { menu_id: link_select, context: { land: "{land}", type: "bans" } }
     states:
       - if:
-          - placeholder_equals: { placeholder: "{k.linked}", value: "true" }
+          - expression: 'k.linked == "true"'
         material: PLAYER_HEAD
         head: "hdb:19778"
         title:

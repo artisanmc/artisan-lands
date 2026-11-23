@@ -37,7 +37,7 @@ elements:
         - set_arg: { arg: refresh, value: "{f.key}" }
     states:
       - if:
-          - placeholder_equals: { placeholder: "{f.enabled}", value: "true" }
+          - expression: 'f.enabled == "true"'
         material: "{f.icon}"
         title: "<dark_green>{f.name}"
         lore:

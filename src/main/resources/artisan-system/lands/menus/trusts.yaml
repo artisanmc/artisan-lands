@@ -77,7 +77,7 @@ elements:
         - open_menu: { menu_id: trust_edit, context: { land: "{land}", target: "guild", group: "" } }
     states:
       - if:
-          - placeholder_equals: { placeholder: "{l.guild_trust}", value: "false" }
+          - expression: 'l.guild_trust == "false"'
         material: GREEN_STAINED_GLASS_PANE
         title: " "
   - id: previous

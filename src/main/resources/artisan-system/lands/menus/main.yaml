@@ -68,7 +68,7 @@ elements:
         - "<white><bold>Tronçons utilisés : <green>{m.used}/{m.max}"
     states:
       - if:
-          - placeholder_equals: { placeholder: "{m.guild}", value: "true" }
+          - expression: 'm.guild == "true"'
         material: PLAYER_HEAD
         head: "hdb:20774"
         title:
@@ -117,7 +117,7 @@ elements:
     title: " "
     states:
       - if:
-          - placeholder_equals: { placeholder: "{scope}", value: "sublands" }
+          - expression: 'scope == "sublands"'
         material: RED_STAINED_GLASS_PANE
         title:
           en: "<dark_red>Back"
