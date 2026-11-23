@@ -5,5 +5,5 @@ api-version: 1.21
 authors: [ Iban ]
 description: Plugin de protections
 depend: [ Core ]
-softdepend: [ QuickShop-Hikari, HeadDatabase, MSGuilds, Vault, BlueMap ]
+softdepend: [ QuickShop-Hikari, HeadDatabase, ArtisanGuilds, MSGuilds, Vault, BlueMap ]
 folia-supported: true
