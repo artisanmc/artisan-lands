@@ -143,7 +143,7 @@ public class ShopListeners implements Listener {
 
         if (!plugin.isGuildsHookEnabled()) return;
 
-        if (landRepository.getLandAt(shop.getShopBlock().getLocation()) instanceof GuildLand guildLand) {
+        if (landRepository.getLandAt((Location) shop.getLocation()) instanceof GuildLand guildLand) {
             UUID seller = shop.getOwner().getUniqueId();
 
             if (!guildLand.hasFlag(Flag.SHOP_MONEY_TO_GUILD_BANK) || seller == null) return;
