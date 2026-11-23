@@ -96,6 +96,7 @@ flag:
 
 portal:
   cancelled: "<red>La création du portail a été annulée, celui-ci se trouvant sur un claim où vous n'êtes pas autorisé à poser des blocs."
+  nether_roof: "<red>Ce portail est sur le toit du Nether hors d'un claim : il sera détruit dans <minutes> minutes. Claimez la zone pour le conserver."
 
 map:
   land: "<dark_green>Territoire : <land>"
@@ -278,6 +279,7 @@ flags:
   silent_enter_quit: "Désactive le message d'entrée/sortie du territoire"
   invisible: "Rend les joueurs à l'intérieur invisibles"
   instant_teleport: "Supprime le délai des téléportations depuis ce territoire"
+  nether_roof_portal_decay: "Détruit les portails allumés sur le toit du Nether après un délai"
   explosions: "Active les explosions"
   block_damages_by_entity: "Active les dégâts aux blocs par les entités (endermen, withers...)"
   pressure_plate_by_entity: "Active l'utilisation des plaques de pression par les entités"

@@ -114,14 +114,15 @@ public class LandServiceImpl implements LandService {
 
     @Override
     public void renameLand(Land land, Player player, String name) {
-        name = name == null ? null : name.trim();
+        String newName = name == null ? null : name.trim();
         // The new name, not the current one (MSLands checked the current one).
-        if (isInvalidName(player, land, name)) {
+        if (isInvalidName(player, land, newName)) {
             return;
         }
 
-        land.setName(name);
+        land.setName(newName);
         landRepository.updateLand(land);
+        plugin.getClaimVisualization().syncLand(land);
         messages.send(player, "land.renamed");
     }
 
@@ -129,6 +130,7 @@ public class LandServiceImpl implements LandService {
     public void claim(SChunk chunk, Land land) {
         chunk.setCreatedAt(new Date());
         landRepository.addChunk(chunk, land);
+        plugin.getClaimVisualization().syncChunk(chunk);
     }
 
     @Override
@@ -207,6 +209,7 @@ public class LandServiceImpl implements LandService {
     @Override
     public void unclaim(SChunk chunk) {
         landRepository.removeChunk(chunk);
+        plugin.getClaimVisualization().syncChunk(chunk);
     }
 
     private boolean hasEnouphClaims(Player player, Land land) {

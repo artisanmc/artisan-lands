@@ -11,6 +11,8 @@ import fr.iban.lands.commands.MaxClaimsCommand;
 import fr.iban.lands.commands.MiscellaneousCommands;
 import fr.iban.lands.guild.AbstractGuildDataAccess;
 import fr.iban.lands.guild.ArtisanGuildsDataAccess;
+import fr.iban.lands.integration.bluemap.BlueMapClaimVisualization;
+import fr.iban.lands.integration.claims.ClaimVisualization;
 import fr.iban.lands.listeners.*;
 import fr.iban.lands.menu.LandMenus;
 import fr.iban.lands.menu.LandPlaceholders;
@@ -27,6 +29,7 @@ import fr.iban.lands.storage.SqlStorage;
 import fr.iban.lands.sync.LandSync;
 import fr.iban.lands.task.PotionEffectTask;
 import fr.iban.lands.utils.ChatInputs;
+import fr.iban.lands.utils.CuboidSelectionPreview;
 import fr.iban.lands.utils.LandMap;
 import fr.iban.lands.utils.SeeClaims;
 import net.artisanmc.modules.api.ArtisanAPI;
@@ -85,12 +88,24 @@ public final class LandsPlugin extends JavaPlugin {
     private LandMessages messages;
     private LandMenus menus;
     private final ChatInputs chatInputs = new ChatInputs();
+    private ClaimVisualization claimVisualization = ClaimVisualization.noop();
 
     private final Map<UUID, SeeClaims> seeClaims = new HashMap<>();
     private LandMap landMap;
+    private CuboidSelectionPreview selectionPreview;
 
     @Override
     public void onEnable() {
+        try {
+            enable();
+        } catch (Throwable t) {
+            getLogger().log(Level.SEVERE, "ArtisanLands could not start: the server shuts down rather than "
+                    + "leave the lands unprotected.", t);
+            getServer().shutdown();
+        }
+    }
+
+    private void enable() {
         instance = this;
         api = resolveArtisan();
         if (api == null) {
@@ -127,9 +142,11 @@ public final class LandsPlugin extends JavaPlugin {
         landService = new LandServiceImpl(this);
         landMap = new LandMap(this);
         menus = new LandMenus(api, this);
+        selectionPreview = new CuboidSelectionPreview(this);
 
         setupEconomy();
         hookGuilds();
+        setupClaimVisualization();
 
         // The other servers' changes to the lands, and this one's to them (MSLands had none).
         try {
@@ -146,6 +163,7 @@ public final class LandsPlugin extends JavaPlugin {
 
         registerListeners(
                 chatInputs,
+                selectionPreview,
                 new BlockBreakListener(this),
                 new BlockPlaceListener(this),
                 new CommandListener(this),
@@ -195,7 +213,9 @@ public final class LandsPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        seeClaims.values().forEach(SeeClaims::stop);
+        if (selectionPreview != null) selectionPreview.close();
+        shutdownComponents(claimVisualization, singleThreadExecutor, seeClaims.values());
+        claimVisualization = ClaimVisualization.noop();
         seeClaims.clear();
         if (api != null && api.getModules().has(LandsModule.ID)) api.getModules().unregister(LandsModule.ID);
         if (singleThreadExecutor != null) {
@@ -211,6 +231,54 @@ public final class LandsPlugin extends JavaPlugin {
         }
         singleThreadExecutor = null;
         api = null;
+    }
+
+    private void setupClaimVisualization() {
+        if (!getConfig().getBoolean("bluemap.enabled", true)
+                || !getServer().getPluginManager().isPluginEnabled("BlueMap")) {
+            return;
+        }
+
+        ClaimVisualization candidate = null;
+        try {
+            candidate = BlueMapClaimVisualization.create(this);
+            claimVisualization = candidate;
+            queueInitialClaimVisualizationRebuild();
+        } catch (RuntimeException | LinkageError failure) {
+            if (candidate != null) {
+                try {
+                    candidate.close();
+                } catch (RuntimeException | LinkageError cleanupFailure) {
+                    if (cleanupFailure != failure) {
+                        failure.addSuppressed(cleanupFailure);
+                    }
+                }
+            }
+            claimVisualization = ClaimVisualization.noop();
+            getLogger().log(
+                    Level.SEVERE,
+                    "BlueMap integration initialization failed; claim visualization is disabled until restart.",
+                    failure
+            );
+            return;
+        }
+        getLogger().info("Intégration BlueMap effectuée.");
+    }
+
+    void queueInitialClaimVisualizationRebuild() {
+        runAsyncQueued(claimVisualization::rebuild);
+    }
+
+    /** BlueMap closed first (its failure logged, never blocking the rest), then the queue, then the claim displays. */
+    void shutdownComponents(ClaimVisualization visualization, @Nullable ExecutorService executor,
+                            Collection<SeeClaims> displays) {
+        try {
+            visualization.close();
+        } catch (RuntimeException | LinkageError failure) {
+            getLogger().log(Level.SEVERE, "BlueMap integration shutdown failed.", failure);
+        }
+        if (executor != null) executor.shutdown();
+        displays.forEach(SeeClaims::stop);
     }
 
     /** /land, /lands, /guildclaims, /addmaxclaim, /removemaxclaim, /getmaxclaim and /sayinchat. */
@@ -305,8 +373,13 @@ public final class LandsPlugin extends JavaPlugin {
         }
     }
 
+    /**
+     * Without Artisan or its database the lands cannot be protected: like MSLands in production,
+     * the server shuts down rather than let players in on unprotected lands.
+     */
     private void disable() {
-        getServer().getPluginManager().disablePlugin(this);
+        getLogger().severe("ArtisanLands cannot protect the lands: the server shuts down.");
+        getServer().shutdown();
     }
 
     public void setupEconomy() {
@@ -441,8 +514,16 @@ public final class LandsPlugin extends JavaPlugin {
         return chatInputs;
     }
 
+    public ClaimVisualization getClaimVisualization() {
+        return claimVisualization;
+    }
+
     public LandMap getLandMap() {
         return landMap;
+    }
+
+    public CuboidSelectionPreview getSelectionPreview() {
+        return selectionPreview;
     }
 
     public Map<UUID, SeeClaims> getSeeClaims() {

@@ -5,6 +5,12 @@ enable-creeper-grief: false
 
 default-claim-limit: 5
 
+visualization:
+  # Claim display radius in chunks (1-16). No distant chunks are loaded.
+  view-distance-chunks: 10
+  # Shared panel limit for claims and sublands (4-1024); nearest in 3D take priority.
+  max-panels: 512
+
 guild-claim-prices:
   # Tranche 0 à 4
   0: 0
@@ -19,3 +25,28 @@ server-name: ""
 # Language of the messages for a player whose language is not available, and for the console.
 # The messages themselves are in plugins/Artisan/modules/lands/lang/.
 language: fr
+
+bluemap:
+  enabled: true
+  refresh-interval-minutes: 5
+  marker-set:
+    label: "Territoires"
+    default-hidden: false
+  line-width: 2
+  styles:
+    player:
+      line-color: "#3498DB"
+      fill-color: "#3498DB"
+      fill-opacity: 0.25
+    guild:
+      line-color: "#2ECC71"
+      fill-color: "#2ECC71"
+      fill-opacity: 0.25
+    system:
+      line-color: "#E74C3C"
+      fill-color: "#E74C3C"
+      fill-opacity: 0.25
+
+# Nether portals lit above Y=128 in a land with the NETHER_ROOF_PORTAL_DECAY flag are broken after the delay.
+nether-roof-portals:
+  break-delay-minutes: 10

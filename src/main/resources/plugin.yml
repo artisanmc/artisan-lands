@@ -9,10 +9,10 @@ folia-supported: true
 provides: [ MSLands ]
 # A Bukkit plugin, not a Paper plugin, like ArtisanConversations: Warps and MSBoosts (Bukkit
 # plugins) see its classes, and plugin reloaders can reload it.
-depend: [ Artisan, packetevents ]
+depend: [ Artisan ]
 # Core: only for the one-time import of MSLands' tables from its database, and the delay of its
 # teleports (INSTANT_TELEPORT flag).
-softdepend: [ ArtisanGuilds, QuickShop-Hikari, HeadDatabase, Vault, Core ]
+softdepend: [ ArtisanGuilds, QuickShop-Hikari, HeadDatabase, Vault, Core, BlueMap ]
 
 permissions:
   lands.admin:

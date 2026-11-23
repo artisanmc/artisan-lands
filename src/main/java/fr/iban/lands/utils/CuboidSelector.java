@@ -1,6 +1,5 @@
 package fr.iban.lands.utils;
 
-import com.tcoded.folialib.wrapper.task.WrappedTask;
 import fr.iban.lands.messages.LandMessages;
 import fr.iban.lands.LandsPlugin;
 import fr.iban.lands.api.LandRepository;
@@ -13,10 +12,7 @@ import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Location;
-import org.bukkit.Particle;
 import org.bukkit.entity.Player;
-
-import java.util.List;
 
 public class CuboidSelector {
 
@@ -26,7 +22,6 @@ public class CuboidSelector {
     private Location pos2;
 
     private final Runnable quitCallback;
-    private WrappedTask particleTask;
 
     private final LandsPlugin plugin;
     private final LandRepository landRepository;
@@ -43,7 +38,7 @@ public class CuboidSelector {
         if (currentCuboid != null) {
             this.pos1 = currentCuboid.getLowerNE();
             this.pos2 = currentCuboid.getUpperSW();
-            showParticules(currentCuboid);
+            showPreview(currentCuboid);
         }
     }
 
@@ -53,27 +48,27 @@ public class CuboidSelector {
         messages.send(player, "selection.cuboid.help");
         plugin.getChatInputs().await(player, text -> {
             if (text.equalsIgnoreCase("pos1")) {
-                cancelTask();
+                clearPreview();
                 pos1 = player.getLocation();
                 messages.send(player, "selection.pos1");
                 if (pos2 != null && pos2.getWorld() != pos1.getWorld()) {
                     pos2 = null;
                 }
                 Cuboid cuboid = getCuboid();
-                if (cuboid != null) showParticules(cuboid);
+                if (cuboid != null) showPreview(cuboid);
             } else if (text.equalsIgnoreCase("pos2")) {
-                cancelTask();
+                clearPreview();
                 pos2 = player.getLocation();
                 messages.send(player, "selection.pos2");
                 if (pos1 != null && pos2.getWorld() != pos1.getWorld()) {
                     pos1 = null;
                 }
                 Cuboid cuboid = getCuboid();
-                if (cuboid != null) showParticules(cuboid);
+                if (cuboid != null) showPreview(cuboid);
             } else if (text.equalsIgnoreCase("sauvegarder") || text.equalsIgnoreCase("save")) {
                 Cuboid cuboid = getCuboid();
                 if (verif(cuboid)) {
-                    cancelTask();
+                    clearPreview();
                     land.setCuboid(cuboid, plugin.getServerName());
                     landRepository.updateLand(land);
                     messages.send(player, "selection.cuboid.saved");
@@ -81,7 +76,7 @@ public class CuboidSelector {
                     quitCallback.run();
                 }
             } else if (text.toLowerCase(java.util.Locale.ROOT).startsWith("quit")) {
-                cancelTask();
+                clearPreview();
                 plugin.getChatInputs().cancel(player);
                 quitCallback.run();
             } else {
@@ -91,10 +86,8 @@ public class CuboidSelector {
         });
     }
 
-    private void cancelTask() {
-        if (particleTask != null) {
-            particleTask.cancel();
-        }
+    private void clearPreview() {
+        plugin.getSelectionPreview().clear(player);
     }
 
     private boolean arePosSet() {
@@ -130,21 +123,7 @@ public class CuboidSelector {
         return true;
     }
 
-    private void showParticules(Cuboid cuboid) {
-        List<Location> edgeLocations = cuboid.getCubeEdgeLocations(0.5);
-
-        if (particleTask != null) {
-            particleTask.cancel();
-        }
-
-        particleTask = plugin.getScheduler().runTimer(() -> {
-            for (Location location : edgeLocations) {
-                showParticle(location);
-            }
-        }, 1L, 10L);
-    }
-
-    private void showParticle(Location loc) {
-        player.spawnParticle(Particle.HAPPY_VILLAGER, loc, 1);
+    private void showPreview(Cuboid cuboid) {
+        plugin.getSelectionPreview().show(player, cuboid);
     }
 }
