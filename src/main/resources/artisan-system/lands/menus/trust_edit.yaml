@@ -3,8 +3,8 @@ schema: menu/v1
 title:
   - kind: plain
     value:
-      en: "<dark_green><bold>Edit the permissions"
-      fr: "<dark_green><bold>Édition des permissions"
+      en: '<dark_green>{who[0].kind == "global" ? "Global permissions" : (who[0].kind == "guild" ? "Guild permissions" : "Permissions of " + who[0].name)}'
+      fr: '<dark_green>{who[0].kind == "global" ? "Permissions globales" : (who[0].kind == "guild" ? "Permissions de la guilde" : "Permissions de " + who[0].name)}'
 size: 36
 inputs:
   - name: land
@@ -23,8 +23,8 @@ inputs:
     source: { ref: "lands:permissions", params: { land: "{land}", target: "{target}", group: "{group}" } }
 elements:
   - id: frame
-    positions: "0-9,17-18,26-35"
-    material: GREEN_STAINED_GLASS_PANE
+    positions: "0-9,17-18,26-27,35"
+    material: WHITE_STAINED_GLASS_PANE
     title: " "
   - id: who
     positions: "4"
@@ -34,14 +34,14 @@ elements:
     title: "<dark_green><bold>{w.name}"
     states:
       - if:
-          - placeholder_equals: { placeholder: "{w.kind}", value: "global" }
+          - expression: 'w.kind == "global"'
         material: PLAYER_HEAD
         head: "hdb:2981"
         title:
           en: "<dark_green><bold>Global permissions"
           fr: "<dark_green><bold>Permissions globales"
       - if:
-          - placeholder_equals: { placeholder: "{w.kind}", value: "guild" }
+          - expression: 'w.kind == "guild"'
         material: PLAYER_HEAD
         head: "hdb:51046"
         title:
@@ -63,21 +63,21 @@ elements:
         - set_arg: { arg: refresh, value: "{p.key}" }
     states:
       - if:
-          - placeholder_equals: { placeholder: "{p.kind}", value: "group" }
+          - expression: 'p.kind == "group"'
         material: "{p.icon}"
         title: "<white><bold>{p.name}"
         lore:
           en:
-            - "<gray>Granted: <white>{p.granted_count}/{p.total}"
+            - "{p.summary}"
             - "<aqua>[Click] <white>see the permissions"
           fr:
-            - "<gray>Accordées : <white>{p.granted_count}/{p.total}"
+            - "{p.summary}"
             - "<aqua>[Clic] <white>voir les permissions"
         click:
           left:
             - open_menu: { menu_id: trust_edit, context: { land: "{land}", target: "{target}", group: "{p.key}" } }
       - if:
-          - placeholder_equals: { placeholder: "{p.granted}", value: "true" }
+          - expression: 'p.granted == "true"'
         material: "{p.icon}"
         title: "<dark_green>{p.name}"
         lore:
@@ -91,38 +91,37 @@ elements:
             - set_arg: { arg: refresh, value: "{p.key}" }
   - id: previous
     positions: "30"
-    material: ARROW
+    if:
+      - not: { pagination_at_first: permissions }
+    material: GREEN_STAINED_GLASS_PANE
     title:
-      en: "<yellow>Previous"
-      fr: "<yellow>Précédent"
+      en: "<green>Previous"
+      fr: "<green>Précédent"
     click:
       left:
         - pagination_prev: permissions
-    states:
-      - if:
-          - pagination_at_first: permissions
-        material: GREEN_STAINED_GLASS_PANE
-        title: " "
   - id: next
     positions: "32"
-    material: ARROW
+    if:
+      - not: { pagination_at_last: permissions }
+    material: GREEN_STAINED_GLASS_PANE
     title:
-      en: "<yellow>Next"
-      fr: "<yellow>Suivant"
+      en: "<green>Next"
+      fr: "<green>Suivant"
     click:
       left:
         - pagination_next: permissions
-    states:
-      - if:
-          - pagination_at_last: permissions
-        material: GREEN_STAINED_GLASS_PANE
-        title: " "
   - id: back
     positions: "31"
     material: RED_STAINED_GLASS_PANE
     title:
       en: "<dark_red>Back"
       fr: "<dark_red>Retour"
+    lore:
+      en:
+        - "<red>Go back to the previous menu"
+      fr:
+        - "<red>Retourner au menu précédent"
     click:
       left:
         - open_previous_menu

@@ -31,6 +31,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * The rows of the land menus. Each fetcher runs on the viewer's thread at every render, so it reads
@@ -151,6 +152,9 @@ public final class LandMenuData {
         row.put("guild_trust", viewer == null || guildTrustAvailable(viewer, land));
         row.put("sublands", land.getSubLands().size());
         String area = "";
+        String areaWorld = "";
+        String areaPos1 = "";
+        String areaPos2 = "";
         String areaServer = "";
         boolean areaSet = false;
         if (land instanceof SubLand subLand) {
@@ -160,10 +164,17 @@ public final class LandMenuData {
                 areaSet = true;
                 area = cuboid.getWorld().getName() + " " + cuboid.getLowerX() + " " + cuboid.getLowerY() + " "
                         + cuboid.getLowerZ() + " → " + cuboid.getUpperX() + " " + cuboid.getUpperY() + " " + cuboid.getUpperZ();
+                // As MSLands showed it: position 1 is the upper corner, position 2 the lower one.
+                areaWorld = cuboid.getWorld().getName();
+                areaPos1 = "x: " + cuboid.getUpperX() + " y: " + cuboid.getUpperY() + " z:" + cuboid.getUpperZ();
+                areaPos2 = "x: " + cuboid.getLowerX() + " y: " + cuboid.getLowerY() + " z:" + cuboid.getLowerZ();
             }
         }
         row.put("area_set", areaSet);
         row.put("area", area);
+        row.put("area_world", areaWorld);
+        row.put("area_pos1", areaPos1);
+        row.put("area_pos2", areaPos2);
         row.put("area_server", areaServer);
         row.put("area_elsewhere", !areaSet && !areaServer.isEmpty());
         return List.of(row);
@@ -289,6 +300,11 @@ public final class LandMenuData {
                 row.put("granted", actions.stream().allMatch(trust::hasPermission));
                 row.put("granted_count", (int) actions.stream().filter(trust::hasPermission).count());
                 row.put("total", actions.size());
+                // MSLands listed each action of the group, green when granted, red otherwise.
+                row.put("summary", actions.stream()
+                        .map(action -> (trust.hasPermission(action) ? "<white>• <dark_green>" : "<white>• <dark_red>")
+                                + messages.action(viewer, action))
+                        .collect(Collectors.joining("\n")));
                 rows.add(row);
             }
         }

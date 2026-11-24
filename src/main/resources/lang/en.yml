@@ -96,6 +96,7 @@ flag:
 
 portal:
   cancelled: "<red>The portal was not created: it would be in a claim where you cannot place blocks."
+  nether_roof: "<red>This portal is on the Nether roof outside a claim: it will break in <minutes> minutes. Claim the area to keep it."
 
 map:
   land: "<dark_green>Land: <land>"
@@ -278,6 +279,7 @@ flags:
   silent_enter_quit: "No enter/leave message"
   invisible: "Players inside are invisible"
   instant_teleport: "No teleport delay from this land"
+  nether_roof_portal_decay: "Breaks portals lit on the Nether roof after a delay"
   explosions: "Explosions"
   block_damages_by_entity: "Entities damage blocks (endermen, withers...)"
   pressure_plate_by_entity: "Entities use pressure plates"

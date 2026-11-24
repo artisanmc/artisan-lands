@@ -2,12 +2,16 @@ schema: menu/v1
 title:
   - kind: plain
     value:
-      en: "<dark_green><bold>Links"
-      fr: "<dark_green><bold>Liens"
+      en: '<dark_green><bold>{info[0].name}</bold> <dark_gray>> <dark_green>links'
+      fr: '<dark_green><bold>{info[0].name}</bold> <dark_gray>> <dark_green>liens'
 size: 36
 inputs:
   - name: land
     type: string
+  # The land, for its name in the title.
+  - name: info
+    type: list
+    source: { ref: "lands:land", params: { land: "{land}" } }
   - name: globaltrust
     type: list
     source: { ref: "lands:links", params: { land: "{land}" }, filter: { key: "globaltrust" } }
@@ -20,7 +24,7 @@ inputs:
 elements:
   - id: frame
     positions: "0-35"
-    material: GREEN_STAINED_GLASS_PANE
+    material: WHITE_STAINED_GLASS_PANE
     title: " "
   - id: globaltrust
     positions: "10"
@@ -46,7 +50,7 @@ elements:
         - open_menu: { menu_id: link_select, context: { land: "{land}", type: "globaltrust" } }
     states:
       - if:
-          - placeholder_equals: { placeholder: "{k.linked}", value: "true" }
+          - expression: 'k.linked == "true"'
         material: PLAYER_HEAD
         head: "hdb:2981"
         title:
@@ -91,7 +95,7 @@ elements:
         - open_menu: { menu_id: link_select, context: { land: "{land}", type: "trusts" } }
     states:
       - if:
-          - placeholder_equals: { placeholder: "{k.linked}", value: "true" }
+          - expression: 'k.linked == "true"'
         material: PLAYER_HEAD
         head: "hdb:41548"
         title:
@@ -136,7 +140,7 @@ elements:
         - open_menu: { menu_id: link_select, context: { land: "{land}", type: "bans" } }
     states:
       - if:
-          - placeholder_equals: { placeholder: "{k.linked}", value: "true" }
+          - expression: 'k.linked == "true"'
         material: PLAYER_HEAD
         head: "hdb:19778"
         title:
@@ -163,6 +167,11 @@ elements:
     title:
       en: "<dark_red>Back"
       fr: "<dark_red>Retour"
+    lore:
+      en:
+        - "<red>Go back to the previous menu"
+      fr:
+        - "<red>Retourner au menu précédent"
     click:
       left:
         - open_previous_menu

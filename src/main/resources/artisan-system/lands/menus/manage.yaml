@@ -2,8 +2,8 @@ schema: menu/v1
 title:
   - kind: plain
     value:
-      en: "<dark_green><bold>Manage the land"
-      fr: "<dark_green><bold>Gestion du territoire"
+      en: '<dark_green><bold>{info[0].name}'
+      fr: '<dark_green><bold>{info[0].name}'
 size: 36
 inputs:
   - name: land
@@ -15,7 +15,7 @@ inputs:
 elements:
   - id: frame
     positions: "0-35"
-    material: GREEN_STAINED_GLASS_PANE
+    material: WHITE_STAINED_GLASS_PANE
     title: " "
   - id: land
     positions: "4"
@@ -51,7 +51,7 @@ elements:
         - open_menu: { menu_id: claims, context: { land: "{land}" } }
     states:
       - if:
-          - placeholder_equals: { placeholder: "{l.area_set}", value: "true" }
+          - expression: 'l.area_set == "true"'
         material: PLAYER_HEAD
         head: "hdb:775"
         title:
@@ -60,18 +60,22 @@ elements:
         lore:
           en:
             - "<gray>Server: {l.area_server}"
-            - "<gray>{l.area}"
+            - "<gray>World: x: {l.area_world}"
+            - "<gray>Position 1: {l.area_pos1}"
+            - "<gray>Position 2: {l.area_pos2}"
             - "<green>Click to define the area again."
           fr:
             - "<gray>Serveur : {l.area_server}"
-            - "<gray>{l.area}"
+            - "<gray>Monde : x: {l.area_world}"
+            - "<gray>Position 1 : {l.area_pos1}"
+            - "<gray>Position 2 : {l.area_pos2}"
             - "<green>Cliquez pour redéfinir la zone protégée."
         click:
           left:
             - close_menu
             - lands:select_cuboid: { land: "{land}" }
       - if:
-          - placeholder_equals: { placeholder: "{l.area_elsewhere}", value: "true" }
+          - expression: 'l.area_elsewhere == "true"'
         material: PLAYER_HEAD
         head: "hdb:775"
         title:
@@ -89,7 +93,7 @@ elements:
             - close_menu
             - lands:select_cuboid: { land: "{land}" }
       - if:
-          - placeholder_equals: { placeholder: "{l.subland}", value: "true" }
+          - expression: 'l.subland == "true"'
         material: PLAYER_HEAD
         head: "hdb:775"
         title:
@@ -176,8 +180,8 @@ elements:
         - open_menu: { menu_id: main, context: { scope: "sublands", owner: "", parent: "{land}" } }
     states:
       - if:
-          - placeholder_equals: { placeholder: "{l.can_sublands}", value: "false" }
-        material: GREEN_STAINED_GLASS_PANE
+          - expression: 'l.can_sublands == "false"'
+        material: WHITE_STAINED_GLASS_PANE
         title: " "
   - id: back
     positions: "31"
@@ -185,6 +189,11 @@ elements:
     title:
       en: "<dark_red>Back"
       fr: "<dark_red>Retour"
+    lore:
+      en:
+        - "<red>Go back to the previous menu"
+      fr:
+        - "<red>Retourner au menu"
     click:
       left:
         - open_previous_menu

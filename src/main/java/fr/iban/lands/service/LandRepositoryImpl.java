@@ -149,6 +149,10 @@ public class LandRepositoryImpl implements LandRepository {
 
     @Override
     public void deleteLand(Land land) {
+        List<SChunk> deletedChunks = List.copyOf(getChunks(land));
+        deletedChunks.forEach(chunks::remove);
+        deletedChunks.forEach(plugin.getClaimVisualization()::syncChunk);
+
         if (land.hasSubLand()) {
             for (SubLand subland : land.getSubLands().values()) {
                 deleteLand(subland);
@@ -206,7 +210,12 @@ public class LandRepositoryImpl implements LandRepository {
     public void apply(Fresh fresh) {
         Land known = lands.get(fresh.id());
         if (fresh.land() == null) {
-            if (known != null) forgetWithSubLands(known);
+            if (known != null) {
+                List<SChunk> forgotten = new ArrayList<>(getChunks(known));
+                known.getSubLands().values().forEach(sub -> forgotten.addAll(getChunks(sub)));
+                forgetWithSubLands(known);
+                forgotten.forEach(plugin.getClaimVisualization()::syncChunk);
+            }
             return;
         }
         Land land;
@@ -243,6 +252,7 @@ public class LandRepositoryImpl implements LandRepository {
         });
         land.getLinks().keySet().retainAll(links.keySet());
         land.getLinks().putAll(links);
+        plugin.getClaimVisualization().syncLand(land);
     }
 
     private void forgetWithSubLands(Land land) {

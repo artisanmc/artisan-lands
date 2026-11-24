@@ -2,20 +2,24 @@ schema: menu/v1
 title:
   - kind: plain
     value:
-      en: "<dark_green><bold>List of chunks"
-      fr: "<dark_green><bold>Liste des tronçons"
+      en: '<dark_green><bold>{info[0].name}</bold> <dark_gray>> <dark_green>chunks'
+      fr: '<dark_green><bold>{info[0].name}</bold> <dark_gray>> <dark_green>tronçons'
 size: 36
 inputs:
   - name: land
     type: string
+  # The land, for its name in the title.
+  - name: info
+    type: list
+    source: { ref: "lands:land", params: { land: "{land}" } }
   # The land's chunks on this server; empty unless the viewer may manage it.
   - name: chunks
     type: list
     source: { ref: "lands:chunks", params: { land: "{land}" } }
 elements:
   - id: frame
-    positions: "0-9,17-18,26-35"
-    material: GREEN_STAINED_GLASS_PANE
+    positions: "0-9,17-18,26-27,35"
+    material: WHITE_STAINED_GLASS_PANE
     title: " "
   - id: chunks
     positions: "10-16,19-25"
@@ -41,40 +45,42 @@ elements:
       left:
         - lands:unclaim_chunk: { land: "{land}", world: "{c.world}", x: "{c.x}", z: "{c.z}" }
         - set_arg: { arg: refresh, value: "{c.world}{c.x}{c.z}" }
+      right:
+        - lands:unclaim_chunk: { land: "{land}", world: "{c.world}", x: "{c.x}", z: "{c.z}" }
+        - set_arg: { arg: refresh, value: "{c.world}{c.x}{c.z}" }
   - id: previous
     positions: "30"
-    material: ARROW
+    if:
+      - not: { pagination_at_first: chunks }
+    material: GREEN_STAINED_GLASS_PANE
     title:
-      en: "<yellow>Previous"
-      fr: "<yellow>Précédent"
+      en: "<green>Previous"
+      fr: "<green>Précédent"
     click:
       left:
         - pagination_prev: chunks
-    states:
-      - if:
-          - pagination_at_first: chunks
-        material: GREEN_STAINED_GLASS_PANE
-        title: " "
   - id: next
     positions: "32"
-    material: ARROW
+    if:
+      - not: { pagination_at_last: chunks }
+    material: GREEN_STAINED_GLASS_PANE
     title:
-      en: "<yellow>Next"
-      fr: "<yellow>Suivant"
+      en: "<green>Next"
+      fr: "<green>Suivant"
     click:
       left:
         - pagination_next: chunks
-    states:
-      - if:
-          - pagination_at_last: chunks
-        material: GREEN_STAINED_GLASS_PANE
-        title: " "
   - id: back
     positions: "31"
     material: RED_STAINED_GLASS_PANE
     title:
       en: "<dark_red>Back"
       fr: "<dark_red>Retour"
+    lore:
+      en:
+        - "<red>Go back to the previous menu"
+      fr:
+        - "<red>Retourner au menu précédent"
     click:
       left:
         - open_previous_menu

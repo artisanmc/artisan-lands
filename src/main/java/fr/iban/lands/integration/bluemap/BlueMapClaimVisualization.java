@@ -1,0 +1,249 @@
+package fr.iban.lands.integration.bluemap;
+
+import com.tcoded.folialib.wrapper.task.WrappedTask;
+import de.bluecolored.bluemap.api.BlueMapAPI;
+import fr.iban.lands.LandsPlugin;
+import fr.iban.lands.integration.claims.BlueMapSettings;
+import fr.iban.lands.integration.claims.ClaimMarkerFactory;
+import fr.iban.lands.integration.claims.ClaimMarkerSynchronizer;
+import fr.iban.lands.integration.claims.ClaimOwnerLabelResolver;
+import fr.iban.lands.integration.claims.ClaimSource;
+import fr.iban.lands.integration.claims.ClaimVisualization;
+import fr.iban.lands.integration.claims.RepositoryClaimSource;
+import fr.iban.lands.model.SChunk;
+import fr.iban.lands.model.land.GuildLand;
+import fr.iban.lands.model.land.Land;
+import org.bukkit.Bukkit;
+
+import java.util.Objects;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
+import java.util.logging.Logger;
+
+public final class BlueMapClaimVisualization implements ClaimVisualization {
+    private static final ListenerRegistry BLUE_MAP_LISTENERS = new ListenerRegistry() {
+        @Override
+        public void onEnable(Consumer<BlueMapAPI> listener) {
+            BlueMapAPI.onEnable(listener);
+        }
+
+        @Override
+        public void onDisable(Consumer<BlueMapAPI> listener) {
+            BlueMapAPI.onDisable(listener);
+        }
+
+        @Override
+        public void unregister(Consumer<BlueMapAPI> listener) {
+            BlueMapAPI.unregisterListener(listener);
+        }
+    };
+
+    private final BlueMapMarkerSink sink;
+    private final ClaimMarkerSynchronizer synchronizer;
+    private final ListenerRegistry listeners;
+    private final BlueMapFailureCircuitBreaker breaker;
+    private final Consumer<BlueMapAPI> onEnable;
+    private final Consumer<BlueMapAPI> onDisable;
+    private Cancellable refreshTask;
+    private boolean closed;
+
+    public BlueMapClaimVisualization(
+            BlueMapMarkerSink sink,
+            ClaimMarkerSynchronizer synchronizer
+    ) {
+        this(sink, synchronizer, BLUE_MAP_LISTENERS, defaultBreaker());
+    }
+
+    BlueMapClaimVisualization(
+            BlueMapMarkerSink sink,
+            ClaimMarkerSynchronizer synchronizer,
+            ListenerRegistry listeners
+    ) {
+        this(sink, synchronizer, listeners, defaultBreaker());
+    }
+
+    BlueMapClaimVisualization(
+            BlueMapMarkerSink sink,
+            ClaimMarkerSynchronizer synchronizer,
+            ListenerRegistry listeners,
+            BlueMapFailureCircuitBreaker breaker
+    ) {
+        this.sink = Objects.requireNonNull(sink);
+        this.synchronizer = Objects.requireNonNull(synchronizer);
+        this.listeners = Objects.requireNonNull(listeners);
+        this.breaker = Objects.requireNonNull(breaker);
+        AtomicBoolean registeringEnableListener = new AtomicBoolean(true);
+        this.onEnable = api -> {
+            boolean rebuildAfterAttach = !registeringEnableListener.get();
+            breaker.execute("BlueMap enable", () -> {
+                sink.attach(api);
+                if (rebuildAfterAttach) {
+                    synchronizer.rebuild();
+                }
+            });
+        };
+        this.onDisable = api -> breaker.cleanup("BlueMap disable", () -> sink.detach(api));
+        try {
+            try {
+                listeners.onEnable(onEnable);
+            } finally {
+                registeringEnableListener.set(false);
+            }
+            listeners.onDisable(onDisable);
+        } catch (RuntimeException | LinkageError failure) {
+            rollbackListener(onDisable, failure);
+            rollbackListener(onEnable, failure);
+            throw failure;
+        }
+    }
+
+    public static ClaimVisualization create(LandsPlugin plugin) {
+        BlueMapSettings settings = BlueMapSettings.load(
+                plugin.getConfig()::get,
+                plugin.getLogger()::warning
+        );
+        ClaimSource source = new RepositoryClaimSource(plugin.getLandRepository());
+        ClaimOwnerLabelResolver ownerLabelResolver = land -> ownerLabel(plugin, land);
+        ClaimMarkerFactory descriptorFactory = new ClaimMarkerFactory(settings, ownerLabelResolver);
+        BlueMapShapeMarkerFactory shapeMarkerFactory =
+                new BlueMapShapeMarkerFactory(settings.lineWidth());
+        BlueMapMapResolver mapResolver = new BlueMapMapResolver();
+        BlueMapMarkerSink sink = new BlueMapMarkerSink(
+                settings,
+                shapeMarkerFactory,
+                mapResolver,
+                plugin.getLogger()
+        );
+        ClaimMarkerSynchronizer synchronizer = new ClaimMarkerSynchronizer(
+                plugin.getServerName(),
+                source,
+                sink,
+                descriptorFactory
+        );
+        BlueMapFailureCircuitBreaker breaker =
+                new BlueMapFailureCircuitBreaker(plugin.getLogger());
+        BlueMapClaimVisualization lifecycleOwner = new BlueMapClaimVisualization(
+                sink,
+                synchronizer,
+                BLUE_MAP_LISTENERS,
+                breaker
+        );
+        long periodTicks = Math.multiplyExact(
+                settings.refreshIntervalMinutes(),
+                60L * 20L
+        );
+        try {
+            lifecycleOwner.startRefresh((action, delay, period) -> {
+                WrappedTask task = plugin.getScheduler().runTimerAsync(action, delay, period);
+                return task::cancel;
+            }, periodTicks);
+        } catch (RuntimeException | LinkageError failure) {
+            lifecycleOwner.close();
+            throw failure;
+        }
+        return new FaultTolerantClaimVisualization(lifecycleOwner, breaker);
+    }
+
+    void startRefresh(RefreshScheduler scheduler, long periodTicks) {
+        Cancellable scheduled = scheduler.schedule(
+                () -> breaker.execute("scheduled refresh", synchronizer::refreshIfDirty),
+                periodTicks,
+                periodTicks
+        );
+        synchronized (this) {
+            if (closed) {
+                scheduled.cancel();
+            } else {
+                refreshTask = scheduled;
+            }
+        }
+    }
+
+    @Override
+    public void rebuild() {
+        synchronizer.rebuild();
+    }
+
+    @Override
+    public void syncChunk(SChunk chunk) {
+        synchronizer.syncChunk(chunk);
+    }
+
+    @Override
+    public void syncLand(Land land) {
+        synchronizer.syncLand(land);
+    }
+
+    @Override
+    public void close() {
+        Cancellable scheduled;
+        synchronized (this) {
+            if (closed) {
+                return;
+            }
+            closed = true;
+            scheduled = refreshTask;
+            refreshTask = null;
+        }
+        if (scheduled != null) {
+            breaker.cleanup("scheduled refresh cancel", scheduled::cancel);
+        }
+        breaker.cleanup("BlueMap enable listener unregister", () -> listeners.unregister(onEnable));
+        breaker.cleanup("BlueMap disable listener unregister", () -> listeners.unregister(onDisable));
+        breaker.cleanup("BlueMap synchronizer close", synchronizer::close);
+    }
+
+    private static BlueMapFailureCircuitBreaker defaultBreaker() {
+        return new BlueMapFailureCircuitBreaker(
+                Logger.getLogger(BlueMapClaimVisualization.class.getName())
+        );
+    }
+
+    private void rollbackListener(
+            Consumer<BlueMapAPI> listener,
+            Throwable registrationFailure
+    ) {
+        try {
+            listeners.unregister(listener);
+        } catch (RuntimeException | LinkageError rollbackFailure) {
+            if (rollbackFailure != registrationFailure) {
+                registrationFailure.addSuppressed(rollbackFailure);
+            }
+        }
+    }
+
+    private static String ownerLabel(LandsPlugin plugin, Land land) {
+        UUID owner = land.getOwner();
+        if (owner == null) {
+            return "";
+        }
+        if (land instanceof GuildLand guildLand) {
+            if (plugin.isGuildsHookEnabled()) {
+                String guildName = guildLand.getGuildName();
+                if (guildName != null) {
+                    return guildName;
+                }
+            }
+            return owner.toString();
+        }
+        String playerName = Bukkit.getOfflinePlayer(owner).getName();
+        return playerName == null ? owner.toString() : playerName;
+    }
+
+    interface ListenerRegistry {
+        void onEnable(Consumer<BlueMapAPI> listener);
+
+        void onDisable(Consumer<BlueMapAPI> listener);
+
+        void unregister(Consumer<BlueMapAPI> listener);
+    }
+
+    interface RefreshScheduler {
+        Cancellable schedule(Runnable action, long delayTicks, long periodTicks);
+    }
+
+    interface Cancellable {
+        void cancel();
+    }
+}

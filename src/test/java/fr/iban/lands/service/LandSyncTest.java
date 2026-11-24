@@ -63,6 +63,7 @@ class LandSyncTest {
     private static LandsPlugin plugin() {
         LandsPlugin plugin = mock(LandsPlugin.class);
         when(plugin.getLogger()).thenReturn(Logger.getLogger("lands"));
+        when(plugin.getClaimVisualization()).thenReturn(fr.iban.lands.integration.claims.ClaimVisualization.noop());
         doAnswer(call -> {
             call.<Runnable>getArgument(0).run();
             return null;

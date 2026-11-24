@@ -18,6 +18,10 @@ val artisanApiVersion: String by project
 repositories {
     mavenCentral()
     mavenLocal()
+    maven {
+        name = "CodeMCQuickShop"
+        url = uri("https://repo.codemc.io/repository/ghost-chu/")
+    }
     maven { url = uri("https://repo.papermc.io/repository/maven-public/") }
     maven { url = uri("https://repo.artisanmc.net/releases") }
     maven { url = uri("https://repo.artisanmc.net/snapshots") }
@@ -25,6 +29,7 @@ repositories {
     maven { url = uri("https://jitpack.io/") }
     maven { url = uri("https://repo.codemc.io/repository/maven-releases/") }
     maven { url = uri("https://repo.tcoded.com/releases") }
+    maven { url = uri("https://repo.bluecolored.de/releases") }
 }
 
 dependencies {
@@ -33,10 +38,11 @@ dependencies {
     compileOnly("net.artisanmc:artisan-core-api:$artisanApiVersion")
     // ArtisanGuilds (optional at runtime: guild lands), from repo.artisanmc.net.
     compileOnly("net.artisanmc:artisan-guilds:2.0.0-SNAPSHOT")
-    compileOnly("com.ghostchu:quickshop-api:6.1.0.1")
-    compileOnly("com.ghostchu:quickshop-bukkit:6.1.0.1")
+    // 6.3 API (Locatable shop locations work on 6.2 servers too).
+    compileOnly("com.ghostchu:quickshop-hikari:6.3.0.2")
     compileOnly("com.github.MilkBowl:VaultAPI:1.7.1") { isTransitive = false }
-    compileOnly("com.github.retrooper:packetevents-spigot:2.6.0")
+    // BlueMap (optional at runtime: claims drawn on the map).
+    compileOnly("de.bluecolored:bluemap-api:2.7.7")
 
     implementation("com.tcoded:FoliaLib:0.5.1")
     implementation("net.objecthunter:exp4j:0.4.8")
@@ -47,6 +53,7 @@ dependencies {
     testImplementation("com.h2database:h2:2.3.232")
     testImplementation("org.yaml:snakeyaml:2.3")
     testImplementation("org.mockito:mockito-core:5.14.2")
+    testImplementation("de.bluecolored:bluemap-api:2.7.7")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

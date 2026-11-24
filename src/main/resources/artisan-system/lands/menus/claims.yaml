@@ -2,8 +2,8 @@ schema: menu/v1
 title:
   - kind: plain
     value:
-      en: "<dark_green><bold>Chunks"
-      fr: "<dark_green><bold>Tronçons"
+      en: '<dark_green><bold>{info[0].name}</bold> <dark_gray>> <dark_green>chunks'
+      fr: '<dark_green><bold>{info[0].name}</bold> <dark_gray>> <dark_green>tronçons'
 size: 36
 inputs:
   - name: land
@@ -15,7 +15,7 @@ inputs:
 elements:
   - id: frame
     positions: "0-35"
-    material: GREEN_STAINED_GLASS_PANE
+    material: WHITE_STAINED_GLASS_PANE
     title: " "
   - id: land
     positions: "4"
@@ -104,6 +104,11 @@ elements:
     title:
       en: "<dark_red>Back"
       fr: "<dark_red>Retour"
+    lore:
+      en:
+        - "<red>Go back to the previous menu"
+      fr:
+        - "<red>Retourner au menu précédent"
     click:
       left:
         - open_previous_menu
