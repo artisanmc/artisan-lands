@@ -1,0 +1,56 @@
+schema: menu/v1
+# Unbanning a player, for Java players who loaded the resource pack: the module's
+# menus/unban_confirm.yaml drawn with images. Same inputs, same clicks. The window is the image
+# lands_confirm_background (vanilla_texture: false): the player in the middle slot, then the
+# two buttons.
+title:
+  - kind: background
+    asset_id: lands_confirm_background
+  - kind: textarea
+    value: { en: "Unban this player?", fr: "Débannir ce joueur ?" }
+    x: 88
+    y: 6
+    width: 168
+    line_height: 10
+    alignment: center
+size: 27
+vanilla_texture: false
+inputs:
+  - name: land
+    type: string
+  - name: target
+    type: string
+  - name: target_name
+    type: string
+elements:
+  - id: target
+    positions: "13"
+    material: PLAYER_HEAD
+    head: "playerhead:{target_name}"
+    title: "<white>{target_name}"
+    lore:
+      en:
+        - "<yellow>Do you really want to unban {target_name}?"
+      fr:
+        - "<yellow>Voulez-vous vraiment débannir {target_name} ?"
+  - id: confirm
+    positions: "19-21"
+    image: { asset: lands_button, fit: native }
+    label: { text: { en: "<white>Unban", fr: "<white>Débannir" }, offset_y: 1 }
+    title:
+      en: "<green>Unban"
+      fr: "<green>Débannir"
+    click:
+      left:
+        - lands:unban: { land: "{land}", player: "{target}" }
+        - open_previous_menu
+  - id: cancel
+    positions: "23-25"
+    image: { asset: lands_button_plain, fit: native }
+    label: { text: { en: "<white>Cancel", fr: "<white>Annuler" }, offset_y: 1 }
+    title:
+      en: "<gray>Cancel"
+      fr: "<gray>Annuler"
+    click:
+      left:
+        - open_previous_menu

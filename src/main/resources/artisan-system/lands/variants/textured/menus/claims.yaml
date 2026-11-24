@@ -1,0 +1,145 @@
+schema: menu/v1
+# A land's chunks for Java players who loaded the resource pack: the module's menus/claims.yaml drawn
+# with images. Same inputs, same clicks. The window is the image lands_hub_background
+# (vanilla_texture: false): four cards, the land's chunks in a box at the bottom.
+title:
+  - kind: background
+    asset_id: lands_hub_background
+  - kind: textarea
+    value: { en: "Chunks", fr: "Tronçons" }
+    x: 88
+    y: 6
+    width: 168
+    line_height: 10
+    alignment: center
+  - kind: textarea
+    value: "{info[0].name}"
+    x: 88
+    y: 20
+    width: 168
+    line_height: 14
+    alignment: center
+    size: 12
+size: 54
+vanilla_texture: false
+inputs:
+  - name: land
+    type: string
+  # Empty unless the viewer may manage the land.
+  - name: info
+    type: list
+    source: { ref: "lands:land", params: { land: "{land}" } }
+elements:
+  - id: land
+    positions: "1-7"
+    title: "<dark_green><bold>{info[0].name}"
+    lore:
+      en:
+        - "<white>Chunks: {info[0].chunks}"
+      fr:
+        - "<white>Tronçons : {info[0].chunks}"
+  - id: here
+    positions: "9-11,18-20"
+    if:
+      - expression: 'info.length() > 0'
+    image: { asset: lands_card_here, fit: native }
+    label: { text: { en: "<#404040>Here", fr: "<#404040>Ici" }, offset_y: 8 }
+    title:
+      en: "<dark_green>Chunk"
+      fr: "<dark_green>Tronçon"
+    lore:
+      en:
+        - "<green>Left click: add the chunk you stand in."
+        - "<red>Right click: remove the chunk you stand in."
+        - "<yellow>Also: /land claim|unclaim [land]"
+      fr:
+        - "<green>Clic gauche : ajouter le tronçon où vous vous trouvez."
+        - "<red>Clic droit : retirer le tronçon où vous vous trouvez."
+        - "<yellow>Vous pouvez aussi utiliser /land (un)claim [territoire]"
+    click:
+      left:
+        - lands:claim_here: { land: "{land}" }
+        - set_arg: { arg: refresh, value: "claim" }
+      right:
+        - lands:unclaim_here: { land: "{land}" }
+        - set_arg: { arg: refresh, value: "unclaim" }
+  - id: selection
+    positions: "12-14,21-23"
+    if:
+      - expression: 'info.length() > 0'
+    image: { asset: lands_card_selection, fit: native }
+    label: { text: { en: "<#404040>Selection", fr: "<#404040>Sélection" }, offset_y: 8 }
+    title:
+      en: "<dark_green>Selection"
+      fr: "<dark_green>Sélection"
+    lore:
+      en:
+        - "<green>(Un)claim an area selected in the chat."
+      fr:
+        - "<green>Ouvre le mode sélection."
+    click:
+      left:
+        - close_menu
+        - lands:select_area: { land: "{land}" }
+  - id: map
+    positions: "15-17,24-26"
+    if:
+      - expression: 'info.length() > 0'
+    image: { asset: lands_card_map, fit: native }
+    label: { text: { en: "<#404040>Map", fr: "<#404040>Carte" }, offset_y: 8 }
+    title:
+      en: "<dark_green>Map"
+      fr: "<dark_green>Map"
+    lore:
+      en:
+        - "<green>(Un)claim from the chunk map."
+      fr:
+        - "<green>Permet de (un)claim à partir du chunk map."
+    click:
+      left:
+        - close_menu
+        - lands:show_map: { land: "{land}" }
+  - id: list
+    positions: "30-32,39-41"
+    if:
+      - expression: 'info.length() > 0'
+    image: { asset: lands_card_list, fit: native }
+    label: { text: { en: "<#404040>List", fr: "<#404040>Liste" }, offset_y: 8 }
+    title:
+      en: "<dark_green>List of chunks"
+      fr: "<dark_green>Liste des tronçons"
+    lore:
+      en:
+        - "<green>The land's chunks on this server."
+      fr:
+        - "<green>Les tronçons du territoire sur ce serveur."
+    click:
+      left:
+        - open_menu: { menu_id: chunks, context: { land: "{land}" } }
+  - id: back
+    positions: "45"
+    image: { asset: lands_back, fit: native }
+    title:
+      en: "<gray>Back"
+      fr: "<gray>Retour"
+    click:
+      left:
+        - open_previous_menu
+  - id: chunk_count
+    positions: "46-48"
+    if:
+      - expression: 'info.length() > 0'
+    image: { asset: lands_chunks_count, fit: native }
+    label: { text: "<white>{info[0].chunks}", offset_x: 5 }
+    title:
+      en: "<yellow>Chunks: <white>{info[0].chunks}"
+      fr: "<yellow>Tronçons : <white>{info[0].chunks}"
+  - id: close
+    positions: "53"
+    image: { asset: lands_close, fit: native }
+    title:
+      en: "<red>Close"
+      fr: "<red>Fermer"
+    click:
+      left:
+        - close_menu

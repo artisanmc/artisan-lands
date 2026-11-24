@@ -24,14 +24,21 @@ class SystemFilesTest {
     private static final Pattern DIALOG_ID = Pattern.compile("dialog_id: (\\w+)");
     private static final Pattern SOURCE = Pattern.compile("ref: \"(lands:\\w+)\"");
     private static final Pattern ACTION = Pattern.compile("- (lands:\\w+):");
+    private static final Pattern ASSET = Pattern.compile("asset(?:_id)?: (\\w+)");
 
     @Test
     void everyFileIsShippedAndEveryReferenceResolves() throws IOException {
         Set<String> menus = new HashSet<>();
         Set<String> dialogs = new HashSet<>();
+        Set<String> assets = new HashSet<>();
         for (String file : LandsModule.SYSTEM_FILES) {
-            String id = file.substring(file.indexOf('/') + 1, file.lastIndexOf('.'));
-            (file.startsWith("menus/") ? menus : dialogs).add(id);
+            String id = file.substring(file.lastIndexOf('/') + 1, file.lastIndexOf('.'));
+            if (file.startsWith("menus/")) menus.add(id);
+            else if (file.startsWith("dialogs/")) dialogs.add(id);
+            else if (file.startsWith("assets/") && file.endsWith(".png")) {
+                assets.add(id);
+                assertTrue(LandsModule.SYSTEM_FILES.contains(file.replace(".png", ".yml")), file + " has no descriptor");
+            }
         }
         Set<String> sources = Set.of("lands:lands", "lands:land", "lands:limits", "lands:trusts", "lands:bans",
                 "lands:trust_target", "lands:permissions", "lands:flags", "lands:links", "lands:link_candidates",
@@ -50,9 +57,24 @@ class SystemFilesTest {
         }
 
         for (String file : LandsModule.SYSTEM_FILES) {
+            if (file.startsWith("assets/")) {
+                read(LandsModule.SYSTEM_ROOT + "/" + file);
+                continue;
+            }
             String text = read(LandsModule.SYSTEM_ROOT + "/" + file);
             Map<String, Object> doc = new Yaml().load(text);
-            assertEquals(file.startsWith("menus/") ? "menu/v1" : "dialog/v1", doc.get("schema"), file);
+            if (file.equals("variants.yaml")) {
+                assertEquals("variants/v1", doc.get("schema"), file);
+                continue;
+            }
+            boolean menu = file.startsWith("menus/") || file.contains("/menus/");
+            assertEquals(menu ? "menu/v1" : "dialog/v1", doc.get("schema"), file);
+            if (file.startsWith("variants/")) {
+                // A variant's version of a menu: the module has that menu.
+                String id = file.substring(file.lastIndexOf('/') + 1, file.lastIndexOf('.'));
+                assertTrue(menus.contains(id), file + " is the version of no menu of the module");
+            }
+            check(ASSET, text, assets, file);
             check(MENU_ID, text, menus, file);
             check(DIALOG_ID, text, dialogs, file);
             check(SOURCE, text, sources, file);

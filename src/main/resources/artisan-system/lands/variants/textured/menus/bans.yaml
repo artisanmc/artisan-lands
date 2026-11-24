@@ -1,0 +1,116 @@
+schema: menu/v1
+# A land's bans for Java players who loaded the resource pack: the module's menus/bans.yaml drawn
+# with images. Same inputs, same clicks. The window is the image lands_list_background
+# (vanilla_texture: false); Add is a button at the bottom.
+title:
+  - kind: background
+    asset_id: lands_list_background
+  - kind: textarea
+    value: { en: "Bans", fr: "Bannissements" }
+    x: 88
+    y: 6
+    width: 168
+    line_height: 10
+    alignment: center
+  - kind: textarea
+    value: "{info[0].name}"
+    x: 88
+    y: 20
+    width: 168
+    line_height: 14
+    alignment: center
+    size: 12
+size: 54
+vanilla_texture: false
+inputs:
+  - name: land
+    type: string
+  # Empty unless the viewer may manage the land.
+  - name: info
+    type: list
+    source: { ref: "lands:land", params: { land: "{land}" } }
+  - name: bans
+    type: list
+    source: { ref: "lands:bans", params: { land: "{land}" } }
+elements:
+  - id: land
+    positions: "1-7"
+    title: "<dark_green><bold>{info[0].name}"
+  - id: bans
+    positions: "10-16,19-25,28-34,37-43"
+    iterates: { source: bans, alias: b }
+    material: PLAYER_HEAD
+    head: "playerhead:{b.name}"
+    title: "<dark_green><bold>{b.name}"
+    lore:
+      en:
+        - "<green>Click to unban."
+      fr:
+        - "<green>Clic pour débannir."
+    click:
+      left:
+        - open_menu: { menu_id: unban_confirm, context: { land: "{land}", target: "{b.id}", target_name: "{b.name}" } }
+  # Two slots high each, on both sides of the list; greyed at its ends.
+  - id: previous
+    positions: "18,27"
+    states:
+      - if:
+          - pagination_at_first: bans
+        image: { asset: lands_prev_off, fit: native }
+        title: " "
+    image: { asset: lands_prev, fit: native }
+    title:
+      en: "<yellow>Previous page"
+      fr: "<yellow>Page précédente"
+    click:
+      left:
+        - pagination_prev: bans
+  - id: next
+    positions: "26,35"
+    states:
+      - if:
+          - pagination_at_last: bans
+        image: { asset: lands_next_off, fit: native }
+        title: " "
+    image: { asset: lands_next, fit: native }
+    title:
+      en: "<yellow>Next page"
+      fr: "<yellow>Page suivante"
+    click:
+      left:
+        - pagination_next: bans
+  - id: back
+    positions: "45"
+    image: { asset: lands_back, fit: native }
+    title:
+      en: "<gray>Back"
+      fr: "<gray>Retour"
+    click:
+      left:
+        - open_previous_menu
+  - id: add
+    positions: "48-50"
+    if:
+      - expression: 'info.length() > 0'
+    image: { asset: lands_button, fit: native }
+    label: { text: { en: "<white>Ban", fr: "<white>Bannir" }, offset_y: 1 }
+    title:
+      en: "<dark_green>Add"
+      fr: "<dark_green>Ajouter"
+    lore:
+      en:
+        - "<green>Ban a player from this land."
+      fr:
+        - "<green>Permet de bannir un joueur."
+    click:
+      left:
+        - open_dialog: { dialog_id: ban_add, context: { land: "{land}" } }
+  - id: close
+    positions: "53"
+    image: { asset: lands_close, fit: native }
+    title:
+      en: "<red>Close"
+      fr: "<red>Fermer"
+    click:
+      left:
+        - close_menu

@@ -1,0 +1,87 @@
+schema: menu/v1
+# The lands a link may borrow from, for Java players who loaded the resource pack: the module's
+# menus/link_select.yaml drawn with images. Same inputs, same clicks. The window is the image
+# lands_list_background (vanilla_texture: false).
+title:
+  - kind: background
+    asset_id: lands_list_background
+  - kind: textarea
+    value: { en: "Select a land", fr: "Sélectionnez un territoire" }
+    x: 88
+    y: 6
+    width: 168
+    line_height: 10
+    alignment: center
+size: 54
+vanilla_texture: false
+inputs:
+  - name: land
+    type: string
+  - name: type
+    type: string
+  - name: candidates
+    type: list
+    source: { ref: "lands:link_candidates", params: { land: "{land}", type: "{type}" } }
+elements:
+  - id: candidates
+    positions: "10-16,19-25,28-34,37-43"
+    iterates: { source: candidates, alias: c }
+    material: PLAYER_HEAD
+    head: "hdb:24064"
+    title: "<dark_green>{c.name}"
+    lore:
+      en:
+        - "<green>Click to link with this land."
+      fr:
+        - "<green>Cliquez pour sélectionner ce territoire"
+    click:
+      left:
+        - lands:link: { land: "{land}", type: "{type}", with: "{c.id}" }
+        - open_previous_menu
+  # Two slots high each, on both sides of the list; greyed at its ends.
+  - id: previous
+    positions: "18,27"
+    states:
+      - if:
+          - pagination_at_first: candidates
+        image: { asset: lands_prev_off, fit: native }
+        title: " "
+    image: { asset: lands_prev, fit: native }
+    title:
+      en: "<yellow>Previous page"
+      fr: "<yellow>Page précédente"
+    click:
+      left:
+        - pagination_prev: candidates
+  - id: next
+    positions: "26,35"
+    states:
+      - if:
+          - pagination_at_last: candidates
+        image: { asset: lands_next_off, fit: native }
+        title: " "
+    image: { asset: lands_next, fit: native }
+    title:
+      en: "<yellow>Next page"
+      fr: "<yellow>Page suivante"
+    click:
+      left:
+        - pagination_next: candidates
+  - id: back
+    positions: "45"
+    image: { asset: lands_back, fit: native }
+    title:
+      en: "<gray>Cancel"
+      fr: "<gray>Annuler"
+    click:
+      left:
+        - open_previous_menu
+  - id: close
+    positions: "53"
+    image: { asset: lands_close, fit: native }
+    title:
+      en: "<red>Close"
+      fr: "<red>Fermer"
+    click:
+      left:
+        - close_menu
