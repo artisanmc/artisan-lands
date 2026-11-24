@@ -12,7 +12,7 @@ title:
     width: 168
     line_height: 10
     alignment: center
-size: 54
+size: 45
 vanilla_texture: false
 inputs:
   - name: land
@@ -26,12 +26,9 @@ inputs:
     type: list
     source: { ref: "lands:flags", params: { land: "{land}" } }
 elements:
-  - id: land
-    positions: "1-7"
-    title: "<dark_green><bold>{info[0].name}"
   # A flag is a plate: the green check when enabled, an empty round otherwise.
   - id: flags
-    positions: "10-16,19-25,28-34,37-43"
+    positions: "1-7,10-16,19-25,28-34"
     iterates: { source: flags, alias: f }
     image: { asset: lands_toggle_off, fit: native }
     material: "{f.icon}"
@@ -62,7 +59,7 @@ elements:
             - set_arg: { arg: refresh, value: "{f.key}" }
   # Two slots high each, on both sides of the list; greyed at its ends.
   - id: previous
-    positions: "18,27"
+    positions: "9,18"
     states:
       - if:
           - pagination_at_first: flags
@@ -76,7 +73,7 @@ elements:
       left:
         - pagination_prev: flags
   - id: next
-    positions: "26,35"
+    positions: "17,26"
     states:
       - if:
           - pagination_at_last: flags
@@ -90,7 +87,7 @@ elements:
       left:
         - pagination_next: flags
   - id: back
-    positions: "45"
+    positions: "36"
     image: { asset: lands_back, fit: native }
     title:
       en: "<gray>Back"
@@ -99,7 +96,7 @@ elements:
       left:
         - open_previous_menu
   - id: links
-    positions: "46-48"
+    positions: "37-39"
     if:
       - expression: 'info.length() > 0'
     image: { asset: lands_button_plain, fit: native }
@@ -116,7 +113,7 @@ elements:
       left:
         - open_menu: { menu_id: links, context: { land: "{land}" } }
   - id: rename
-    positions: "50-52"
+    positions: "41-43"
     if:
       - expression: 'info.length() > 0'
     image: { asset: lands_button, fit: native }
@@ -133,7 +130,7 @@ elements:
       left:
         - open_dialog: { dialog_id: rename, context: { land: "{land}", current: "{info[0].name}" } }
   - id: close
-    positions: "53"
+    positions: "44"
     image: { asset: lands_close, fit: native }
     title:
       en: "<red>Close"

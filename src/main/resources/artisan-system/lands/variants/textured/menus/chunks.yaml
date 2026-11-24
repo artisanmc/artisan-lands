@@ -12,7 +12,7 @@ title:
     width: 168
     line_height: 10
     alignment: center
-size: 54
+size: 45
 vanilla_texture: false
 inputs:
   - name: land
@@ -26,11 +26,8 @@ inputs:
     type: list
     source: { ref: "lands:chunks", params: { land: "{land}" } }
 elements:
-  - id: land
-    positions: "1-7"
-    title: "<dark_green><bold>{info[0].name}"
   - id: chunks
-    positions: "10-16,19-25,28-34,37-43"
+    positions: "1-7,10-16,19-25,28-34"
     iterates: { source: chunks, alias: c }
     material: DIRT
     title:
@@ -58,7 +55,7 @@ elements:
         - set_arg: { arg: refresh, value: "{c.world}{c.x}{c.z}" }
   # Two slots high each, on both sides of the list; greyed at its ends.
   - id: previous
-    positions: "18,27"
+    positions: "9,18"
     states:
       - if:
           - pagination_at_first: chunks
@@ -72,7 +69,7 @@ elements:
       left:
         - pagination_prev: chunks
   - id: next
-    positions: "26,35"
+    positions: "17,26"
     states:
       - if:
           - pagination_at_last: chunks
@@ -86,7 +83,7 @@ elements:
       left:
         - pagination_next: chunks
   - id: back
-    positions: "45"
+    positions: "36"
     image: { asset: lands_back, fit: native }
     title:
       en: "<gray>Back"
@@ -95,7 +92,7 @@ elements:
       left:
         - open_previous_menu
   - id: close
-    positions: "53"
+    positions: "44"
     image: { asset: lands_close, fit: native }
     title:
       en: "<red>Close"

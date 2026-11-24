@@ -13,7 +13,7 @@ title:
     width: 168
     line_height: 10
     alignment: center
-size: 54
+size: 45
 vanilla_texture: false
 inputs:
   - name: land
@@ -26,11 +26,8 @@ inputs:
     type: list
     source: { ref: "lands:trusts", params: { land: "{land}" } }
 elements:
-  - id: land
-    positions: "1-7"
-    title: "<dark_green><bold>{info[0].name}"
   - id: trusts
-    positions: "10-16,19-25,28-34,37-43"
+    positions: "1-7,10-16,19-25,28-34"
     iterates: { source: trusts, alias: t }
     material: PLAYER_HEAD
     head: "playerhead:{t.name}"
@@ -50,7 +47,7 @@ elements:
         - set_arg: { arg: refresh, value: "{t.id}" }
   # Two slots high each, on both sides of the list; greyed at its ends.
   - id: previous
-    positions: "18,27"
+    positions: "9,18"
     states:
       - if:
           - pagination_at_first: trusts
@@ -64,7 +61,7 @@ elements:
       left:
         - pagination_prev: trusts
   - id: next
-    positions: "26,35"
+    positions: "17,26"
     states:
       - if:
           - pagination_at_last: trusts
@@ -78,7 +75,7 @@ elements:
       left:
         - pagination_next: trusts
   - id: back
-    positions: "45"
+    positions: "36"
     image: { asset: lands_back, fit: native }
     title:
       en: "<gray>Back"
@@ -87,7 +84,7 @@ elements:
       left:
         - open_previous_menu
   - id: global
-    positions: "46-48"
+    positions: "37-39"
     if:
       - expression: 'info.length() > 0'
     image: { asset: lands_button_plain, fit: native }
@@ -106,7 +103,7 @@ elements:
       left:
         - open_menu: { menu_id: trust_edit, context: { land: "{land}", target: "global", group: "" } }
   - id: guild
-    positions: "49-51"
+    positions: "40-42"
     if:
       - expression: 'info[0].guild_trust == "true"'
     image: { asset: lands_button_plain, fit: native }
@@ -125,7 +122,7 @@ elements:
       left:
         - open_menu: { menu_id: trust_edit, context: { land: "{land}", target: "guild", group: "" } }
   - id: add
-    positions: "52"
+    positions: "43"
     if:
       - expression: 'info.length() > 0'
     image: { asset: lands_add, fit: native }
@@ -141,7 +138,7 @@ elements:
       left:
         - open_dialog: { dialog_id: trust_add, context: { land: "{land}" } }
   - id: close
-    positions: "53"
+    positions: "44"
     image: { asset: lands_close, fit: native }
     title:
       en: "<red>Close"

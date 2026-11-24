@@ -1,7 +1,7 @@
 schema: menu/v1
 # A land's menu for Java players who loaded the resource pack: the module's menus/manage.yaml drawn
 # with images. Same inputs, same clicks. The window is the image lands_hub_background
-# (vanilla_texture: false); the land's name is the title, its hover the area under it. Each entry
+# (vanilla_texture: false); the land's name is the title, on one line. Each entry
 # is a card over 3x2 slots, its name the card's label (the dark grey of a window's title), short
 # enough for the card's 50 pixels (Droits, Réglages, Parcelles); the tooltip keeps the full name. The
 # bottom row: the land's chunks and trusted players in boxes.
@@ -15,7 +15,7 @@ title:
     width: 168
     line_height: 10
     alignment: center
-size: 54
+size: 45
 vanilla_texture: false
 inputs:
   - name: land
@@ -25,23 +25,9 @@ inputs:
     type: list
     source: { ref: "lands:land", params: { land: "{land}" } }
 elements:
-  # The land's name at the top is a title text: this element (no image, no item) is an invisible
-  # area under it that shows the land on hover.
-  - id: land
-    positions: "1-7"
-    title: "<dark_green><bold>{info[0].name}"
-    lore:
-      en:
-        - "<white>Chunks: {info[0].chunks}"
-        - "<white>Trusted players: {info[0].trusts}"
-        - "<white>Bans: {info[0].bans}"
-      fr:
-        - "<white>Tronçons : {info[0].chunks}"
-        - "<white>Joueurs trust : {info[0].trusts}"
-        - "<white>Bannissements : {info[0].bans}"
   # A land's chunks; for a sub-land, its area (selected in the world, the menu closes).
   - id: claims
-    positions: "9-11,18-20"
+    positions: "0-2,9-11"
     if:
       - expression: 'info.length() > 0'
     states:
@@ -119,7 +105,7 @@ elements:
       left:
         - open_menu: { menu_id: claims, context: { land: "{land}" } }
   - id: trusts
-    positions: "12-14,21-23"
+    positions: "3-5,12-14"
     if:
       - expression: 'info.length() > 0'
     image: { asset: lands_card_permissions, fit: native }
@@ -136,7 +122,7 @@ elements:
       left:
         - open_menu: { menu_id: trusts, context: { land: "{land}" } }
   - id: settings
-    positions: "15-17,24-26"
+    positions: "6-8,15-17"
     if:
       - expression: 'info.length() > 0'
     image: { asset: lands_card_settings, fit: native }
@@ -153,7 +139,7 @@ elements:
       left:
         - open_menu: { menu_id: settings, context: { land: "{land}" } }
   - id: bans
-    positions: "27-29,36-38"
+    positions: "18-20,27-29"
     if:
       - expression: 'info.length() > 0'
     image: { asset: lands_card_bans, fit: native }
@@ -170,7 +156,7 @@ elements:
       left:
         - open_menu: { menu_id: bans, context: { land: "{land}" } }
   - id: sublands
-    positions: "30-32,39-41"
+    positions: "21-23,30-32"
     if:
       - expression: 'info[0].can_sublands == "true"'
     image: { asset: lands_card_sublands, fit: native }
@@ -192,7 +178,7 @@ elements:
         - open_menu: { menu_id: main, context: { scope: "sublands", owner: "", parent: "{land}" } }
   # The links also open from the settings, as in the module's menus; here they get the last card.
   - id: links
-    positions: "33-35,42-44"
+    positions: "24-26,33-35"
     if:
       - expression: 'info.length() > 0'
     image: { asset: lands_card_links, fit: native }
@@ -209,7 +195,7 @@ elements:
       left:
         - open_menu: { menu_id: links, context: { land: "{land}" } }
   - id: back
-    positions: "45"
+    positions: "36"
     image: { asset: lands_back, fit: native }
     title:
       en: "<gray>Back"
@@ -218,7 +204,7 @@ elements:
       left:
         - open_previous_menu
   - id: chunk_count
-    positions: "46-48"
+    positions: "37-39"
     if:
       - expression: 'info.length() > 0'
     image: { asset: lands_chunks_count, fit: native }
@@ -227,7 +213,7 @@ elements:
       en: "<yellow>Chunks: <white>{info[0].chunks}"
       fr: "<yellow>Tronçons : <white>{info[0].chunks}"
   - id: trust_count
-    positions: "50-52"
+    positions: "41-43"
     if:
       - expression: 'info.length() > 0'
     image: { asset: lands_trusts_count, fit: native }
@@ -241,7 +227,7 @@ elements:
       fr:
         - "<gray>Bannissements : <white>{info[0].bans}"
   - id: close
-    positions: "53"
+    positions: "44"
     image: { asset: lands_close, fit: native }
     title:
       en: "<red>Close"

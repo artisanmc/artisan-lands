@@ -7,10 +7,11 @@ descriptors. Pillow only. Vanilla palette (generic_54 / generic_27); no text in 
 are title texts and button labels, translated.
 
 The drawing functions down to `card_badge` are those of ArtisanGuilds' tools/textured/generate.py,
-unchanged: the windows, buttons, arrows, back, close, toggles and boxes come out identical to the
-pixel to guilds_* (and to daily_* where those match), so that they move to Artisan's shared UI kit
-(button.3x1, arrow.next.1x2, close.1x1, window.6…) without a visible change. Only the icons of the
-cards and boxes are the lands' own.
+unchanged: the buttons, arrows, back, close, toggles and boxes come out identical to the pixel to
+guilds_* (and to daily_* where those match), so that they move to Artisan's shared UI kit
+(button.3x1, arrow.next.1x2, close.1x1…) without a visible change. The lands' own: the icons of the
+cards and boxes, and the windows, one row shorter (a 5-row `window.5`, the links in a `window.3`)
+because the lands' titles hold on one line.
 """
 from pathlib import Path
 
@@ -97,18 +98,32 @@ def groove(img, x0, x1, y):
     rect(img, x0 + 1, y + 1, x1 + 1, y + 1, VHI)
 
 
+# The lands' titles fit on one line at the vanilla place, so their windows start the content at the
+# first row, right under the title: 5 rows instead of the guilds' 6 (whose first row is left to a
+# two-line title), and no groove under the title.
+ROWS5 = 204  # = 222 - 18, the guilds' 6-row window one row shorter
+
+
 def main_background():
-    """The guild menu: the title area, a groove, the six cards (images of their own), the bottom row."""
-    img = panel(222)
-    groove(img, 7, 167, 33)
-    groove(img, 7, 167, 106)
+    """A land's menu and its chunks' menu: the cards (images of their own) over rows 0-3, a groove,
+    the bottom row."""
+    img = panel(ROWS5)
+    groove(img, 7, 167, 88)
+    return img
+
+
+def links_background():
+    """The links: the three cards over rows 0-1, a groove, the bottom row; 3 rows (166, like the
+    confirmations)."""
+    img = panel(166)
+    groove(img, 7, 167, 52)
     return img
 
 
 def list_background():
-    """Members, ranks, rank permissions: the 28 slots of the list (10-16 ... 37-43)."""
-    img = panel(222)
-    gx0, gy0 = slot_xy(10)
+    """The lists: the 28 slots (1-7 ... 28-34) from the first row."""
+    img = panel(ROWS5)
+    gx0, gy0 = slot_xy(1)
     for r in range(4):
         for c in range(7):
             vslot(img, gx0 + c * 18, gy0 + r * 18)
@@ -827,10 +842,12 @@ def add():
 # left (ascent 13 puts the top row at chest-y 0). Codepoints are only hints: the pack moves a glyph
 # whose codepoint another project already uses.
 GLYPHS = {
-    # = guilds_main_background: the title area, a groove, the cards, the bottom row
+    # guilds_main_background one row shorter, without the groove under the title
     "lands_hub_background": (main_background(), 0xE7D0),
-    # = guilds_list_background = daily_background: the 28 slots of a list
+    # guilds_list_background (= daily_background) one row shorter: the 28 slots of a list
     "lands_list_background": (list_background(), 0xE7D1),
+    # the links' three cards and the bottom row, 3 rows
+    "lands_links_background": (links_background(), 0xE7D3),
     # = guilds_confirm_background
     "lands_confirm_background": (confirm_background(), 0xE7D2),
 }

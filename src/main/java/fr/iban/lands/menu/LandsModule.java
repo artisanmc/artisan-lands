@@ -89,6 +89,8 @@ public final class LandsModule implements ArtisanModule {
             "assets/glyphs/lands_confirm_background.yml",
             "assets/glyphs/lands_hub_background.png",
             "assets/glyphs/lands_hub_background.yml",
+            "assets/glyphs/lands_links_background.png",
+            "assets/glyphs/lands_links_background.yml",
             "assets/glyphs/lands_list_background.png",
             "assets/glyphs/lands_list_background.yml",
             "assets/textures/lands_add.png",

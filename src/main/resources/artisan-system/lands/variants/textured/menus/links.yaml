@@ -1,10 +1,10 @@
 schema: menu/v1
 # A land's links for Java players who loaded the resource pack: the module's menus/links.yaml drawn
-# with images. Same inputs, same clicks. The window is the image lands_hub_background
+# with images. Same inputs, same clicks. The window is the image lands_links_background, three rows
 # (vanilla_texture: false): one card per link, with a red badge when the land borrows it.
 title:
   - kind: background
-    asset_id: lands_hub_background
+    asset_id: lands_links_background
   - kind: textarea
     value: { en: '{info[0].name} <#808080>></#808080> Links', fr: '{info[0].name} <#808080>></#808080> Liens' }
     x: 88
@@ -12,7 +12,7 @@ title:
     width: 168
     line_height: 10
     alignment: center
-size: 54
+size: 27
 vanilla_texture: false
 inputs:
   - name: land
@@ -31,12 +31,9 @@ inputs:
     type: list
     source: { ref: "lands:links", params: { land: "{land}" }, filter: { key: "bans" } }
 elements:
-  - id: land
-    positions: "1-7"
-    title: "<dark_green><bold>{info[0].name}"
   # Linked: the card wears a red badge and shows the land it borrows from; a click removes the link.
   - id: globaltrust
-    positions: "9-11,18-20"
+    positions: "0-2,9-11"
     if:
       - expression: 'globaltrust.length() > 0'
     states:
@@ -83,7 +80,7 @@ elements:
         - open_menu: { menu_id: link_select, context: { land: "{land}", type: "globaltrust" } }
   # Linked: the card wears a red badge and shows the land it borrows from; a click removes the link.
   - id: trusts
-    positions: "12-14,21-23"
+    positions: "3-5,12-14"
     if:
       - expression: 'trusts.length() > 0'
     states:
@@ -130,7 +127,7 @@ elements:
         - open_menu: { menu_id: link_select, context: { land: "{land}", type: "trusts" } }
   # Linked: the card wears a red badge and shows the land it borrows from; a click removes the link.
   - id: bans
-    positions: "15-17,24-26"
+    positions: "6-8,15-17"
     if:
       - expression: 'bans.length() > 0'
     states:
@@ -176,7 +173,7 @@ elements:
       left:
         - open_menu: { menu_id: link_select, context: { land: "{land}", type: "bans" } }
   - id: back
-    positions: "45"
+    positions: "18"
     image: { asset: lands_back, fit: native }
     title:
       en: "<gray>Back"
@@ -185,7 +182,7 @@ elements:
       left:
         - open_previous_menu
   - id: close
-    positions: "53"
+    positions: "26"
     image: { asset: lands_close, fit: native }
     title:
       en: "<red>Close"

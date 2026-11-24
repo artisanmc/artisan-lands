@@ -14,7 +14,7 @@ title:
     width: 168
     line_height: 10
     alignment: center
-size: 54
+size: 45
 vanilla_texture: false
 inputs:
   - name: scope
@@ -37,7 +37,7 @@ inputs:
     source: { ref: "lands:land", params: { land: "{parent}" } }
 elements:
   - id: lands
-    positions: "10-16,19-25,28-34,37-43"
+    positions: "1-7,10-16,19-25,28-34"
     iterates: { source: lands, alias: l }
     material: PLAYER_HEAD
     head: "hdb:24064"
@@ -64,7 +64,7 @@ elements:
         - open_menu: { menu_id: delete_confirm, context: { land: "{l.id}", from: "menu" } }
   # Two slots high each, on both sides of the list; greyed at its ends.
   - id: previous
-    positions: "18,27"
+    positions: "9,18"
     states:
       - if:
           - pagination_at_first: lands
@@ -78,7 +78,7 @@ elements:
       left:
         - pagination_prev: lands
   - id: next
-    positions: "26,35"
+    positions: "17,26"
     states:
       - if:
           - pagination_at_last: lands
@@ -93,7 +93,7 @@ elements:
         - pagination_next: lands
   # Back only for sub-lands (opened from their land); /lands opens this menu first.
   - id: back
-    positions: "45"
+    positions: "36"
     if:
       - expression: 'scope == "sublands"'
     image: { asset: lands_back, fit: native }
@@ -105,7 +105,7 @@ elements:
         - open_previous_menu
   # A player's or a guild's lands: the chunks used, in a box (the value is the label).
   - id: limits
-    positions: "46-48"
+    positions: "37-39"
     if:
       - expression: 'limits.length() > 0'
     image: { asset: lands_chunks_count, fit: native }
@@ -119,7 +119,7 @@ elements:
       fr:
         - '{limits[0].guild == "true" ? "<gray>Pour acheter des claims de guilde, utilisez /guildclaims" : ""}'
   - id: create
-    positions: "50-52"
+    positions: "41-43"
     image: { asset: lands_button, fit: native }
     label: { text: { en: "<white>Create", fr: "<white>Créer" }, offset_y: 1 }
     title:
@@ -134,7 +134,7 @@ elements:
       left:
         - open_dialog: { dialog_id: create, context: { scope: "{scope}", owner: "{owner}", parent: "{parent}" } }
   - id: close
-    positions: "53"
+    positions: "44"
     image: { asset: lands_close, fit: native }
     title:
       en: "<red>Close"

@@ -12,7 +12,7 @@ title:
     width: 168
     line_height: 10
     alignment: center
-size: 54
+size: 45
 vanilla_texture: false
 inputs:
   - name: land
@@ -24,7 +24,7 @@ inputs:
     source: { ref: "lands:link_candidates", params: { land: "{land}", type: "{type}" } }
 elements:
   - id: candidates
-    positions: "10-16,19-25,28-34,37-43"
+    positions: "1-7,10-16,19-25,28-34"
     iterates: { source: candidates, alias: c }
     material: PLAYER_HEAD
     head: "hdb:24064"
@@ -40,7 +40,7 @@ elements:
         - open_previous_menu
   # Two slots high each, on both sides of the list; greyed at its ends.
   - id: previous
-    positions: "18,27"
+    positions: "9,18"
     states:
       - if:
           - pagination_at_first: candidates
@@ -54,7 +54,7 @@ elements:
       left:
         - pagination_prev: candidates
   - id: next
-    positions: "26,35"
+    positions: "17,26"
     states:
       - if:
           - pagination_at_last: candidates
@@ -68,7 +68,7 @@ elements:
       left:
         - pagination_next: candidates
   - id: back
-    positions: "45"
+    positions: "36"
     image: { asset: lands_back, fit: native }
     title:
       en: "<gray>Cancel"
@@ -77,7 +77,7 @@ elements:
       left:
         - open_previous_menu
   - id: close
-    positions: "53"
+    positions: "44"
     image: { asset: lands_close, fit: native }
     title:
       en: "<red>Close"

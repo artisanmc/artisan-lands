@@ -12,7 +12,7 @@ title:
     width: 168
     line_height: 10
     alignment: center
-size: 54
+size: 45
 vanilla_texture: false
 inputs:
   - name: land
@@ -25,11 +25,8 @@ inputs:
     type: list
     source: { ref: "lands:bans", params: { land: "{land}" } }
 elements:
-  - id: land
-    positions: "1-7"
-    title: "<dark_green><bold>{info[0].name}"
   - id: bans
-    positions: "10-16,19-25,28-34,37-43"
+    positions: "1-7,10-16,19-25,28-34"
     iterates: { source: bans, alias: b }
     material: PLAYER_HEAD
     head: "playerhead:{b.name}"
@@ -44,7 +41,7 @@ elements:
         - open_menu: { menu_id: unban_confirm, context: { land: "{land}", target: "{b.id}", target_name: "{b.name}" } }
   # Two slots high each, on both sides of the list; greyed at its ends.
   - id: previous
-    positions: "18,27"
+    positions: "9,18"
     states:
       - if:
           - pagination_at_first: bans
@@ -58,7 +55,7 @@ elements:
       left:
         - pagination_prev: bans
   - id: next
-    positions: "26,35"
+    positions: "17,26"
     states:
       - if:
           - pagination_at_last: bans
@@ -72,7 +69,7 @@ elements:
       left:
         - pagination_next: bans
   - id: back
-    positions: "45"
+    positions: "36"
     image: { asset: lands_back, fit: native }
     title:
       en: "<gray>Back"
@@ -81,7 +78,7 @@ elements:
       left:
         - open_previous_menu
   - id: add
-    positions: "48-50"
+    positions: "39-41"
     if:
       - expression: 'info.length() > 0'
     image: { asset: lands_button, fit: native }
@@ -98,7 +95,7 @@ elements:
       left:
         - open_dialog: { dialog_id: ban_add, context: { land: "{land}" } }
   - id: close
-    positions: "53"
+    positions: "44"
     image: { asset: lands_close, fit: native }
     title:
       en: "<red>Close"

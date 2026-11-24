@@ -12,7 +12,7 @@ title:
     width: 168
     line_height: 10
     alignment: center
-size: 54
+size: 45
 vanilla_texture: false
 inputs:
   - name: land
@@ -34,13 +34,10 @@ inputs:
     type: list
     source: { ref: "lands:land", params: { land: "{land}" } }
 elements:
-  - id: who
-    positions: "1-7"
-    title: '<dark_green><bold>{who[0].kind == "global" ? "Global permissions" : (who[0].kind == "guild" ? "Guild permissions" : who[0].name)}'
   # A permission is a plate: the green check when granted, an empty round otherwise. A group keeps
   # its item, its actions listed in its tooltip.
   - id: permissions
-    positions: "10-16,19-25,28-34,37-43"
+    positions: "1-7,10-16,19-25,28-34"
     iterates: { source: permissions, alias: p }
     image: { asset: lands_toggle_off, fit: native }
     material: "{p.icon}"
@@ -85,7 +82,7 @@ elements:
             - set_arg: { arg: refresh, value: "{p.key}" }
   # Two slots high each, on both sides of the list; greyed at its ends.
   - id: previous
-    positions: "18,27"
+    positions: "9,18"
     states:
       - if:
           - pagination_at_first: permissions
@@ -99,7 +96,7 @@ elements:
       left:
         - pagination_prev: permissions
   - id: next
-    positions: "26,35"
+    positions: "17,26"
     states:
       - if:
           - pagination_at_last: permissions
@@ -113,7 +110,7 @@ elements:
       left:
         - pagination_next: permissions
   - id: back
-    positions: "45"
+    positions: "36"
     image: { asset: lands_back, fit: native }
     title:
       en: "<gray>Back"
@@ -122,7 +119,7 @@ elements:
       left:
         - open_previous_menu
   - id: close
-    positions: "53"
+    positions: "44"
     image: { asset: lands_close, fit: native }
     title:
       en: "<red>Close"
