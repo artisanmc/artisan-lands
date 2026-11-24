@@ -4,8 +4,8 @@ schema: menu/v1
 title:
   - kind: plain
     value:
-      en: "<dark_green><bold>Lands"
-      fr: "<dark_green><bold>Territoires"
+      en: '<dark_green><bold>{scope == "sublands" ? "Sub-lands of " + parent_info[0].name : (scope == "guild" ? "Guild lands:" : (scope == "system" ? "System lands:" : "Your lands:"))}'
+      fr: '<dark_green><bold>{scope == "sublands" ? "Sous-territoires de " + parent_info[0].name : (scope == "guild" ? "Territoires guilde :" : (scope == "system" ? "Territoires système:" : "Vos territoires :"))}'
 size: 36
 inputs:
   - name: scope
@@ -22,10 +22,14 @@ inputs:
   - name: limits
     type: list
     source: { ref: "lands:limits", params: { scope: "{scope}", owner: "{owner}" } }
+  # For sub-lands, the land they belong to (its name titles the menu).
+  - name: parent_info
+    type: list
+    source: { ref: "lands:land", params: { land: "{parent}" } }
 elements:
   - id: frame
-    positions: "0-9,17-18,26-35"
-    material: GREEN_STAINED_GLASS_PANE
+    positions: "0-9,17-18,26-27,35"
+    material: WHITE_STAINED_GLASS_PANE
     title: " "
   - id: lands
     positions: "10-16,19-25"
@@ -85,36 +89,35 @@ elements:
             - "<gray>utilisez la commande /guildclaims"
   - id: previous
     positions: "30"
-    material: ARROW
+    if:
+      - not: { pagination_at_first: lands }
+    material: GREEN_STAINED_GLASS_PANE
     title:
-      en: "<yellow>Previous"
-      fr: "<yellow>Précédent"
+      en: "<green>Previous"
+      fr: "<green>Précédent"
     click:
       left:
         - pagination_prev: lands
-    states:
-      - if:
-          - pagination_at_first: lands
-        material: GREEN_STAINED_GLASS_PANE
-        title: " "
   - id: next
     positions: "32"
-    material: ARROW
+    if:
+      - not: { pagination_at_last: lands }
+    material: GREEN_STAINED_GLASS_PANE
     title:
-      en: "<yellow>Next"
-      fr: "<yellow>Suivant"
+      en: "<green>Next"
+      fr: "<green>Suivant"
     click:
       left:
         - pagination_next: lands
-    states:
-      - if:
-          - pagination_at_last: lands
-        material: GREEN_STAINED_GLASS_PANE
-        title: " "
   - id: back
     positions: "31"
-    material: GREEN_STAINED_GLASS_PANE
-    title: " "
+    material: RED_STAINED_GLASS_PANE
+    title:
+      en: "<dark_red>Close"
+      fr: "<dark_red>Fermer"
+    click:
+      left:
+        - close_menu
     states:
       - if:
           - expression: 'scope == "sublands"'
@@ -122,6 +125,11 @@ elements:
         title:
           en: "<dark_red>Back"
           fr: "<dark_red>Retour"
+        lore:
+          en:
+            - "<red>Go back to the previous menu"
+          fr:
+            - "<red>Retourner au menu précédent"
         click:
           left:
             - open_previous_menu
@@ -136,7 +144,7 @@ elements:
       en:
         - "<green>Create a new land."
       fr:
-        - "<green>Permet de créer un nouveau territoire."
+        - "<green>Permet de créer un nouveau territoire"
     click:
       left:
         - open_dialog: { dialog_id: create, context: { scope: "{scope}", owner: "{owner}", parent: "{parent}" } }

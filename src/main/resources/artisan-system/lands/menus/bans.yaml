@@ -2,8 +2,8 @@ schema: menu/v1
 title:
   - kind: plain
     value:
-      en: "<dark_green><bold>Bans"
-      fr: "<dark_green><bold>Bannissements"
+      en: '<dark_green><bold>{info[0].name}</bold> <dark_gray>> <dark_green>bans'
+      fr: '<dark_green><bold>{info[0].name}</bold> <dark_gray>> <dark_green>bans'
 size: 36
 inputs:
   - name: land
@@ -17,57 +17,56 @@ inputs:
     source: { ref: "lands:bans", params: { land: "{land}" } }
 elements:
   - id: frame
-    positions: "0-9,17-18,26-35"
-    material: GREEN_STAINED_GLASS_PANE
+    positions: "0-9,17-18,26-27,35"
+    material: WHITE_STAINED_GLASS_PANE
     title: " "
   - id: bans
     positions: "10-16,19-25"
     iterates: { source: bans, alias: b }
     material: PLAYER_HEAD
     head: "playerhead:{b.name}"
-    title: "<dark_red><bold>{b.name}"
+    title: "<dark_green><bold>{b.name}"
     lore:
       en:
         - "<green>Click to unban."
       fr:
-        - "<green>Cliquez pour débannir."
+        - "<green>Clic pour débannir."
     click:
       left:
         - open_menu: { menu_id: unban_confirm, context: { land: "{land}", target: "{b.id}", target_name: "{b.name}" } }
   - id: previous
     positions: "30"
-    material: ARROW
+    if:
+      - not: { pagination_at_first: bans }
+    material: GREEN_STAINED_GLASS_PANE
     title:
-      en: "<yellow>Previous"
-      fr: "<yellow>Précédent"
+      en: "<green>Previous"
+      fr: "<green>Précédent"
     click:
       left:
         - pagination_prev: bans
-    states:
-      - if:
-          - pagination_at_first: bans
-        material: GREEN_STAINED_GLASS_PANE
-        title: " "
   - id: next
     positions: "32"
-    material: ARROW
+    if:
+      - not: { pagination_at_last: bans }
+    material: GREEN_STAINED_GLASS_PANE
     title:
-      en: "<yellow>Next"
-      fr: "<yellow>Suivant"
+      en: "<green>Next"
+      fr: "<green>Suivant"
     click:
       left:
         - pagination_next: bans
-    states:
-      - if:
-          - pagination_at_last: bans
-        material: GREEN_STAINED_GLASS_PANE
-        title: " "
   - id: back
     positions: "31"
     material: RED_STAINED_GLASS_PANE
     title:
       en: "<dark_red>Back"
       fr: "<dark_red>Retour"
+    lore:
+      en:
+        - "<red>Go back to the previous menu"
+      fr:
+        - "<red>Retourner au menu précédent"
     click:
       left:
         - open_previous_menu
@@ -83,7 +82,7 @@ elements:
       en:
         - "<green>Ban a player from this land."
       fr:
-        - "<green>Permet de bannir un joueur du territoire."
+        - "<green>Permet de bannir un joueur."
     click:
       left:
         - open_dialog: { dialog_id: ban_add, context: { land: "{land}" } }

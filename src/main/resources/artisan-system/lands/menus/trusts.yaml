@@ -2,8 +2,8 @@ schema: menu/v1
 title:
   - kind: plain
     value:
-      en: "<dark_green><bold>Permissions"
-      fr: "<dark_green><bold>Permissions"
+      en: '<dark_green><bold>{info[0].name}</bold> <dark_gray>> <dark_green>permissions'
+      fr: '<dark_green><bold>{info[0].name}</bold> <dark_gray>> <dark_green>permissions'
 size: 36
 inputs:
   - name: land
@@ -17,8 +17,8 @@ inputs:
     source: { ref: "lands:trusts", params: { land: "{land}" } }
 elements:
   - id: frame
-    positions: "0-9,17-18,26-35"
-    material: GREEN_STAINED_GLASS_PANE
+    positions: "0-9,17-18,26-27,35"
+    material: WHITE_STAINED_GLASS_PANE
     title: " "
   - id: trusts
     positions: "10-16,19-25"
@@ -60,6 +60,8 @@ elements:
   - id: guild
     positions: "28"
     iterates: { source: info, alias: l }
+    if:
+      - expression: 'l.guild_trust == "true"'
     material: PLAYER_HEAD
     head: "hdb:51046"
     title:
@@ -75,45 +77,39 @@ elements:
     click:
       left:
         - open_menu: { menu_id: trust_edit, context: { land: "{land}", target: "guild", group: "" } }
-    states:
-      - if:
-          - expression: 'l.guild_trust == "false"'
-        material: GREEN_STAINED_GLASS_PANE
-        title: " "
   - id: previous
     positions: "30"
-    material: ARROW
+    if:
+      - not: { pagination_at_first: trusts }
+    material: GREEN_STAINED_GLASS_PANE
     title:
-      en: "<yellow>Previous"
-      fr: "<yellow>Précédent"
+      en: "<green>Previous"
+      fr: "<green>Précédent"
     click:
       left:
         - pagination_prev: trusts
-    states:
-      - if:
-          - pagination_at_first: trusts
-        material: GREEN_STAINED_GLASS_PANE
-        title: " "
   - id: next
     positions: "32"
-    material: ARROW
+    if:
+      - not: { pagination_at_last: trusts }
+    material: GREEN_STAINED_GLASS_PANE
     title:
-      en: "<yellow>Next"
-      fr: "<yellow>Suivant"
+      en: "<green>Next"
+      fr: "<green>Suivant"
     click:
       left:
         - pagination_next: trusts
-    states:
-      - if:
-          - pagination_at_last: trusts
-        material: GREEN_STAINED_GLASS_PANE
-        title: " "
   - id: back
     positions: "31"
     material: RED_STAINED_GLASS_PANE
     title:
       en: "<dark_red>Back"
       fr: "<dark_red>Retour"
+    lore:
+      en:
+        - "<red>Go back to the previous menu"
+      fr:
+        - "<red>Retourner au menu précédent"
     click:
       left:
         - open_previous_menu

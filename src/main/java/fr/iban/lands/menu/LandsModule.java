@@ -51,7 +51,7 @@ public final class LandsModule implements ArtisanModule {
 
     /** The shipped menus and dialogs: raise {@link #SYSTEM_VERSION} whenever one of them changes. */
     static final String SYSTEM = "lands_menus";
-    static final int SYSTEM_VERSION = 2;
+    static final int SYSTEM_VERSION = 3;
     static final String SYSTEM_ROOT = "artisan-system/lands";
     static final List<String> SYSTEM_FILES = List.of(
             "menus/main.yaml",
@@ -194,6 +194,9 @@ public final class LandsModule implements ArtisanModule {
                 field("sublands", ModelFieldType.integer(), null),
                 field("area_set", ModelFieldType.bool(), "A sub-land's area is defined on this server"),
                 field("area", ModelFieldType.string(), "world x y z → x y z"),
+                field("area_world", ModelFieldType.string(), "The world of a sub-land's area"),
+                field("area_pos1", ModelFieldType.string(), "Its upper corner, x: y: z:"),
+                field("area_pos2", ModelFieldType.string(), "Its lower corner, x: y: z:"),
                 field("area_server", ModelFieldType.string(), "The server of a sub-land's area"),
                 field("area_elsewhere", ModelFieldType.bool(), "Its area is on another server")));
         source(api, "lands:land", data::land, one);
@@ -220,7 +223,8 @@ public final class LandsModule implements ArtisanModule {
                 field("icon", ModelFieldType.string(), "A material"),
                 field("granted", ModelFieldType.bool(), "Granted (every action of a group)"),
                 field("granted_count", ModelFieldType.integer(), null),
-                field("total", ModelFieldType.integer(), null)));
+                field("total", ModelFieldType.integer(), null),
+                field("summary", ModelFieldType.minimessageMultiline(), "A group's actions, one per line, green when granted")));
 
         source(api, "lands:flags", data::flags, List.of(
                 field("key", ModelFieldType.string(), "What lands:toggle_flag takes"),
