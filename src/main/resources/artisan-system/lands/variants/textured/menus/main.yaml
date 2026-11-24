@@ -8,22 +8,12 @@ title:
   - kind: background
     asset_id: lands_list_background
   - kind: textarea
-    value:
-      en: '{scope == "sublands" ? "Sub-lands of" : (scope == "guild" ? "Guild lands" : (scope == "system" ? "System lands" : "Your lands"))}'
-      fr: '{scope == "sublands" ? "Sous-territoires de" : (scope == "guild" ? "Territoires de guilde" : (scope == "system" ? "Territoires système" : "Vos territoires"))}'
+    value: { en: '{scope == "sublands" ? "Sub-lands of " + parent_info[0].name : (scope == "guild" ? "Guild lands" : (scope == "system" ? "System lands" : "Your lands"))}', fr: '{scope == "sublands" ? "Sous-territoires de " + parent_info[0].name : (scope == "guild" ? "Territoires de guilde" : (scope == "system" ? "Territoires système" : "Vos territoires"))}' }
     x: 88
     y: 6
     width: 168
     line_height: 10
     alignment: center
-  - kind: textarea
-    value: '{scope == "sublands" ? parent_info[0].name : ""}'
-    x: 88
-    y: 20
-    width: 168
-    line_height: 14
-    alignment: center
-    size: 12
 size: 54
 vanilla_texture: false
 inputs:
