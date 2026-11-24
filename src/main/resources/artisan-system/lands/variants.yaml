@@ -1,0 +1,7 @@
+schema: variants/v1
+# The variants this module has versions for, in variants/<name>/. Which one a player sees is the
+# server's: 'textured' for Java players who loaded the server's resource pack (every menu drawn with
+# assets/textures/lands_* and assets/glyphs/lands_*), the module's own menus otherwise, or the
+# variant the player chose with /artisan variant. A menu the variant has no version of is the
+# module's own.
+variants: [textured]

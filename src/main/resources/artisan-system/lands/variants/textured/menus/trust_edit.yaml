@@ -1,0 +1,129 @@
+schema: menu/v1
+# Editing the permissions of a player, of everyone or of the guild, for Java players who loaded the
+# resource pack: the module's menus/trust_edit.yaml drawn with images. Same inputs, same clicks.
+# The window is the image lands_list_background (vanilla_texture: false).
+title:
+  - kind: background
+    asset_id: lands_list_background
+  - kind: textarea
+    value: { en: '{info[0].name} <#808080>></#808080> {who[0].kind == "global" ? "Global permissions" : (who[0].kind == "guild" ? "Guild permissions" : "Permissions of " + who[0].name)}', fr: '{info[0].name} <#808080>></#808080> {who[0].kind == "global" ? "Permissions globales" : (who[0].kind == "guild" ? "Permissions de guilde" : "Permissions de " + who[0].name)}' }
+    x: 88
+    y: 6
+    width: 168
+    line_height: 10
+    alignment: center
+size: 45
+vanilla_texture: false
+inputs:
+  - name: land
+    type: string
+  - name: target
+    type: string
+  - name: group
+    type: string
+  - name: who
+    type: list
+    source: { ref: "lands:trust_target", params: { land: "{land}", target: "{target}" } }
+  # Without a group: ALL (alone once granted), the groups, then the actions of no group.
+  # Empty unless the viewer may manage the land.
+  - name: permissions
+    type: list
+    source: { ref: "lands:permissions", params: { land: "{land}", target: "{target}", group: "{group}" } }
+  # The land, for its name in the title.
+  - name: info
+    type: list
+    source: { ref: "lands:land", params: { land: "{land}" } }
+elements:
+  # A permission is a plate: the green check when granted, an empty round otherwise. A group keeps
+  # its item, its actions listed in its tooltip.
+  - id: permissions
+    positions: "1-7,10-16,19-25,28-34"
+    iterates: { source: permissions, alias: p }
+    image: { asset: lands_toggle_off, fit: native }
+    material: "{p.icon}"
+    title: "<red>✘ <gray>{p.name}"
+    lore:
+      en:
+        - "<aqua>[Click] <white>grant"
+      fr:
+        - "<aqua>[Clic] <white>accorder"
+    click:
+      left:
+        - lands:toggle_permission: { land: "{land}", target: "{target}", permission: "{p.key}" }
+        - set_arg: { arg: refresh, value: "{p.key}" }
+    states:
+      - if:
+          - expression: 'p.kind == "group"'
+        material: "{p.icon}"
+        title: "<white><bold>{p.name}"
+        lore:
+          en:
+            - "{p.summary}"
+            - "<aqua>[Click] <white>see the permissions"
+          fr:
+            - "{p.summary}"
+            - "<aqua>[Clic] <white>voir les permissions"
+        click:
+          left:
+            - open_menu: { menu_id: trust_edit, context: { land: "{land}", target: "{target}", group: "{p.key}" } }
+      - if:
+          - expression: 'p.granted == "true"'
+        image: { asset: lands_toggle_on, fit: native }
+        material: "{p.icon}"
+        title: "<green>✔ <white>{p.name}"
+        lore:
+          en:
+            - "<aqua>[Click] <white>revoke"
+          fr:
+            - "<aqua>[Clic] <white>retirer"
+        click:
+          left:
+            - lands:toggle_permission: { land: "{land}", target: "{target}", permission: "{p.key}" }
+            - set_arg: { arg: refresh, value: "{p.key}" }
+  # Two slots high each, on both sides of the list; greyed at its ends.
+  - id: previous
+    positions: "9,18"
+    states:
+      - if:
+          - pagination_at_first: permissions
+        image: { asset: lands_prev_off, fit: native }
+        title: " "
+    image: { asset: lands_prev, fit: native }
+    title:
+      en: "<yellow>Previous page"
+      fr: "<yellow>Page précédente"
+    click:
+      left:
+        - pagination_prev: permissions
+  - id: next
+    positions: "17,26"
+    states:
+      - if:
+          - pagination_at_last: permissions
+        image: { asset: lands_next_off, fit: native }
+        title: " "
+    image: { asset: lands_next, fit: native }
+    title:
+      en: "<yellow>Next page"
+      fr: "<yellow>Page suivante"
+    click:
+      left:
+        - pagination_next: permissions
+  - id: back
+    positions: "36"
+    image: { asset: lands_back, fit: native }
+    title:
+      en: "<gray>Back"
+      fr: "<gray>Retour"
+    click:
+      left:
+        - open_previous_menu
+  - id: close
+    positions: "44"
+    image: { asset: lands_close, fit: native }
+    title:
+      en: "<red>Close"
+      fr: "<red>Fermer"
+    click:
+      left:
+        - close_menu

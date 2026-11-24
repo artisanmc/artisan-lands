@@ -1,0 +1,140 @@
+schema: menu/v1
+# A land's settings for Java players who loaded the resource pack: the module's menus/settings.yaml
+# drawn with images. Same inputs, same clicks. The window is the image lands_list_background
+# (vanilla_texture: false); Links and Rename are buttons at the bottom.
+title:
+  - kind: background
+    asset_id: lands_list_background
+  - kind: textarea
+    value: { en: '{info[0].name} <#808080>></#808080> Settings', fr: '{info[0].name} <#808080>></#808080> Paramètres' }
+    x: 88
+    y: 6
+    width: 168
+    line_height: 10
+    alignment: center
+size: 45
+vanilla_texture: false
+inputs:
+  - name: land
+    type: string
+  # Empty unless the viewer may manage the land.
+  - name: info
+    type: list
+    source: { ref: "lands:land", params: { land: "{land}" } }
+  # The flags the land's type supports.
+  - name: flags
+    type: list
+    source: { ref: "lands:flags", params: { land: "{land}" } }
+elements:
+  # A flag is a plate: the green check when enabled, an empty round otherwise.
+  - id: flags
+    positions: "1-7,10-16,19-25,28-34"
+    iterates: { source: flags, alias: f }
+    image: { asset: lands_toggle_off, fit: native }
+    material: "{f.icon}"
+    title: "<red>✘ <gray>{f.name}"
+    lore:
+      en:
+        - "<aqua>[Click] <white>enable"
+      fr:
+        - "<aqua>[Clic] <white>activer"
+    click:
+      left:
+        - lands:toggle_flag: { land: "{land}", flag: "{f.key}" }
+        - set_arg: { arg: refresh, value: "{f.key}" }
+    states:
+      - if:
+          - expression: 'f.enabled == "true"'
+        image: { asset: lands_toggle_on, fit: native }
+        material: "{f.icon}"
+        title: "<green>✔ <white>{f.name}"
+        lore:
+          en:
+            - "<aqua>[Click] <white>disable"
+          fr:
+            - "<aqua>[Clic] <white>désactiver"
+        click:
+          left:
+            - lands:toggle_flag: { land: "{land}", flag: "{f.key}" }
+            - set_arg: { arg: refresh, value: "{f.key}" }
+  # Two slots high each, on both sides of the list; greyed at its ends.
+  - id: previous
+    positions: "9,18"
+    states:
+      - if:
+          - pagination_at_first: flags
+        image: { asset: lands_prev_off, fit: native }
+        title: " "
+    image: { asset: lands_prev, fit: native }
+    title:
+      en: "<yellow>Previous page"
+      fr: "<yellow>Page précédente"
+    click:
+      left:
+        - pagination_prev: flags
+  - id: next
+    positions: "17,26"
+    states:
+      - if:
+          - pagination_at_last: flags
+        image: { asset: lands_next_off, fit: native }
+        title: " "
+    image: { asset: lands_next, fit: native }
+    title:
+      en: "<yellow>Next page"
+      fr: "<yellow>Page suivante"
+    click:
+      left:
+        - pagination_next: flags
+  - id: back
+    positions: "36"
+    image: { asset: lands_back, fit: native }
+    title:
+      en: "<gray>Back"
+      fr: "<gray>Retour"
+    click:
+      left:
+        - open_previous_menu
+  - id: links
+    positions: "37-39"
+    if:
+      - expression: 'info.length() > 0'
+    image: { asset: lands_button_plain, fit: native }
+    label: { text: { en: "<white>Links", fr: "<white>Liens" }, offset_y: 1 }
+    title:
+      en: "<dark_green>Links"
+      fr: "<dark_green>Liens"
+    lore:
+      en:
+        - "<green>Share permissions or bans with your other lands."
+      fr:
+        - "<green>Permet de définir des liens avec vos autres territoires."
+    click:
+      left:
+        - open_menu: { menu_id: links, context: { land: "{land}" } }
+  - id: rename
+    positions: "41-43"
+    if:
+      - expression: 'info.length() > 0'
+    image: { asset: lands_button, fit: native }
+    label: { text: { en: "<white>Rename", fr: "<white>Renommer" }, offset_y: 1 }
+    title:
+      en: "<dark_green>Rename"
+      fr: "<dark_green>Renommer"
+    lore:
+      en:
+        - "<green>Rename the land."
+      fr:
+        - "<green>Permet de renommer le territoire."
+    click:
+      left:
+        - open_dialog: { dialog_id: rename, context: { land: "{land}", current: "{info[0].name}" } }
+  - id: close
+    positions: "44"
+    image: { asset: lands_close, fit: native }
+    title:
+      en: "<red>Close"
+      fr: "<red>Fermer"
+    click:
+      left:
+        - close_menu

@@ -67,8 +67,11 @@ import java.util.logging.Level;
  */
 public final class LandsPlugin extends JavaPlugin {
 
-    /** Lowest Artisan API this plugin compiles against: database, translations in the module's folder, system menus. */
-    public static final String MIN_API_VERSION = "1.0.0";
+    /**
+     * Lowest Artisan API this plugin runs on: database, translations in the module's folder, system menus.
+     * 1.11.0: the textured menus' button labels and invisible hover areas (menu format, no Java member).
+     */
+    public static final String MIN_API_VERSION = "1.11.0";
 
     /** The namespace of the tables ({@code artisan_lands_*} by default) and of the messages. */
     public static final String NAMESPACE = "lands";

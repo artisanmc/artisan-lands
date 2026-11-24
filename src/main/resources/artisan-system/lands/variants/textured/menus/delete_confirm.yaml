@@ -1,0 +1,85 @@
+schema: menu/v1
+# Deleting a land, for Java players who loaded the resource pack: the module's
+# menus/delete_confirm.yaml drawn with images. Same inputs, same clicks. The window is the image
+# lands_confirm_background (vanilla_texture: false): the land in the middle slot, then the two
+# buttons, red for what cannot be undone, a vanilla one to cancel.
+title:
+  - kind: background
+    asset_id: lands_confirm_background
+  - kind: textarea
+    value: { en: "<dark_red>Delete this land?", fr: "<dark_red>Supprimer ce territoire ?" }
+    x: 88
+    y: 6
+    width: 168
+    line_height: 10
+    alignment: center
+size: 27
+vanilla_texture: false
+inputs:
+  - name: land
+    type: string
+  - name: from
+    type: string
+  - name: info
+    type: list
+    source: { ref: "lands:land", params: { land: "{land}" } }
+elements:
+  - id: land
+    positions: "13"
+    iterates: { source: info, alias: l }
+    material: TNT
+    title: "<gold>{l.name}"
+    lore:
+      en:
+        - "<yellow>Delete the land {l.name}?"
+        - "<red>Its chunks, permissions and bans are lost."
+      fr:
+        - "<yellow>Voulez-vous supprimer le territoire {l.name} ?"
+        - "<red>Ses tronçons, permissions et bannissements sont perdus."
+  # From the list: back to it; from /land delete: the menu closes.
+  - id: confirm
+    positions: "19-21"
+    if:
+      - expression: 'info.length() > 0'
+    states:
+      - if:
+          - expression: 'from == "menu"'
+        image: { asset: lands_button_danger, fit: native }
+        label: { text: { en: "<white>Delete", fr: "<white>Supprimer" }, offset_y: 1 }
+        title:
+          en: "<red>Delete"
+          fr: "<red>Supprimer"
+        click:
+          left:
+            - lands:delete: { land: "{land}" }
+            - open_previous_menu
+    image: { asset: lands_button_danger, fit: native }
+    label: { text: { en: "<white>Delete", fr: "<white>Supprimer" }, offset_y: 1 }
+    title:
+      en: "<red>Delete"
+      fr: "<red>Supprimer"
+    click:
+      left:
+        - lands:delete: { land: "{land}" }
+        - close_menu
+  - id: cancel
+    positions: "23-25"
+    states:
+      - if:
+          - expression: 'from == "menu"'
+        image: { asset: lands_button_plain, fit: native }
+        label: { text: { en: "<white>Cancel", fr: "<white>Annuler" }, offset_y: 1 }
+        title:
+          en: "<gray>Cancel"
+          fr: "<gray>Annuler"
+        click:
+          left:
+            - open_previous_menu
+    image: { asset: lands_button_plain, fit: native }
+    label: { text: { en: "<white>Cancel", fr: "<white>Annuler" }, offset_y: 1 }
+    title:
+      en: "<gray>Cancel"
+      fr: "<gray>Annuler"
+    click:
+      left:
+        - close_menu

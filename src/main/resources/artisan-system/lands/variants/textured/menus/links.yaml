@@ -1,0 +1,192 @@
+schema: menu/v1
+# A land's links for Java players who loaded the resource pack: the module's menus/links.yaml drawn
+# with images. Same inputs, same clicks. The window is the image lands_links_background, three rows
+# (vanilla_texture: false): one card per link, with a red badge when the land borrows it.
+title:
+  - kind: background
+    asset_id: lands_links_background
+  - kind: textarea
+    value: { en: '{info[0].name} <#808080>></#808080> Links', fr: '{info[0].name} <#808080>></#808080> Liens' }
+    x: 88
+    y: 6
+    width: 168
+    line_height: 10
+    alignment: center
+size: 27
+vanilla_texture: false
+inputs:
+  - name: land
+    type: string
+  # The land, for its name in the title.
+  - name: info
+    type: list
+    source: { ref: "lands:land", params: { land: "{land}" } }
+  - name: globaltrust
+    type: list
+    source: { ref: "lands:links", params: { land: "{land}" }, filter: { key: "globaltrust" } }
+  - name: trusts
+    type: list
+    source: { ref: "lands:links", params: { land: "{land}" }, filter: { key: "trusts" } }
+  - name: bans
+    type: list
+    source: { ref: "lands:links", params: { land: "{land}" }, filter: { key: "bans" } }
+elements:
+  # Linked: the card wears a red badge and shows the land it borrows from; a click removes the link.
+  - id: globaltrust
+    positions: "0-2,9-11"
+    if:
+      - expression: 'globaltrust.length() > 0'
+    states:
+      - if:
+          - expression: 'globaltrust[0].linked == "true"'
+        image: { asset: lands_card_linked_global, fit: native }
+        label: { text: { en: "<#404040>Everyone", fr: "<#404040>Globales" }, offset_y: 8 }
+        title:
+          en: "<dark_green>Global permissions link"
+          fr: "<dark_green>Lien permissions globales"
+        lore:
+          en:
+            - "<green>The land's global permissions"
+            - "<green>become those of another land."
+            - ""
+            - "<white><bold>Currently: <green><bold>{globaltrust[0].with} <gray>(click to remove)"
+          fr:
+            - "<green>Permet de faire en sorte que les permissions globales"
+            - "<green>du territoire soient celles d'un autre territoire."
+            - ""
+            - "<white><bold>Actuellement : <green><bold>{globaltrust[0].with} <gray>(clic pour retirer)"
+        click:
+          left:
+            - lands:unlink: { land: "{land}", type: "globaltrust" }
+            - set_arg: { arg: refresh, value: "globaltrust" }
+    image: { asset: lands_card_global, fit: native }
+    label: { text: { en: "<#404040>Everyone", fr: "<#404040>Globales" }, offset_y: 8 }
+    title:
+      en: "<dark_green>Global permissions link"
+      fr: "<dark_green>Lien permissions globales"
+    lore:
+      en:
+        - "<green>The land's global permissions"
+        - "<green>become those of another land."
+        - ""
+        - "<white><bold>Currently: <red><bold>None"
+      fr:
+        - "<green>Permet de faire en sorte que les permissions globales"
+        - "<green>du territoire soient celles d'un autre territoire."
+        - ""
+        - "<white><bold>Actuellement : <red><bold>Aucun"
+    click:
+      left:
+        - open_menu: { menu_id: link_select, context: { land: "{land}", type: "globaltrust" } }
+  # Linked: the card wears a red badge and shows the land it borrows from; a click removes the link.
+  - id: trusts
+    positions: "3-5,12-14"
+    if:
+      - expression: 'trusts.length() > 0'
+    states:
+      - if:
+          - expression: 'trusts[0].linked == "true"'
+        image: { asset: lands_card_linked_players, fit: native }
+        label: { text: { en: "<#404040>Players", fr: "<#404040>Joueurs" }, offset_y: 8 }
+        title:
+          en: "<dark_green>Player permissions link"
+          fr: "<dark_green>Lien permissions joueurs"
+        lore:
+          en:
+            - "<green>The land's player permissions"
+            - "<green>become those of another land."
+            - ""
+            - "<white><bold>Currently: <green><bold>{trusts[0].with} <gray>(click to remove)"
+          fr:
+            - "<green>Permet de faire en sorte que les permissions joueur"
+            - "<green>du territoire soient celles d'un autre territoire."
+            - ""
+            - "<white><bold>Actuellement : <green><bold>{trusts[0].with} <gray>(clic pour retirer)"
+        click:
+          left:
+            - lands:unlink: { land: "{land}", type: "trusts" }
+            - set_arg: { arg: refresh, value: "trusts" }
+    image: { asset: lands_card_players, fit: native }
+    label: { text: { en: "<#404040>Players", fr: "<#404040>Joueurs" }, offset_y: 8 }
+    title:
+      en: "<dark_green>Player permissions link"
+      fr: "<dark_green>Lien permissions joueurs"
+    lore:
+      en:
+        - "<green>The land's player permissions"
+        - "<green>become those of another land."
+        - ""
+        - "<white><bold>Currently: <red><bold>None"
+      fr:
+        - "<green>Permet de faire en sorte que les permissions joueur"
+        - "<green>du territoire soient celles d'un autre territoire."
+        - ""
+        - "<white><bold>Actuellement : <red><bold>Aucun"
+    click:
+      left:
+        - open_menu: { menu_id: link_select, context: { land: "{land}", type: "trusts" } }
+  # Linked: the card wears a red badge and shows the land it borrows from; a click removes the link.
+  - id: bans
+    positions: "6-8,15-17"
+    if:
+      - expression: 'bans.length() > 0'
+    states:
+      - if:
+          - expression: 'bans[0].linked == "true"'
+        image: { asset: lands_card_linked_bans, fit: native }
+        label: { text: { en: "<#404040>Bans", fr: "<#404040>Bannis" }, offset_y: 8 }
+        title:
+          en: "<dark_green>Bans link"
+          fr: "<dark_green>Lien bannissements"
+        lore:
+          en:
+            - "<green>The land's bans"
+            - "<green>become those of another land."
+            - ""
+            - "<white><bold>Currently: <green><bold>{bans[0].with} <gray>(click to remove)"
+          fr:
+            - "<green>Permet de faire en sorte que les bannissements"
+            - "<green>du territoire soient ceux d'un autre territoire."
+            - ""
+            - "<white><bold>Actuellement : <green><bold>{bans[0].with} <gray>(clic pour retirer)"
+        click:
+          left:
+            - lands:unlink: { land: "{land}", type: "bans" }
+            - set_arg: { arg: refresh, value: "bans" }
+    image: { asset: lands_card_bans, fit: native }
+    label: { text: { en: "<#404040>Bans", fr: "<#404040>Bannis" }, offset_y: 8 }
+    title:
+      en: "<dark_green>Bans link"
+      fr: "<dark_green>Lien bannissements"
+    lore:
+      en:
+        - "<green>The land's bans"
+        - "<green>become those of another land."
+        - ""
+        - "<white><bold>Currently: <red><bold>None"
+      fr:
+        - "<green>Permet de faire en sorte que les bannissements"
+        - "<green>du territoire soient ceux d'un autre territoire."
+        - ""
+        - "<white><bold>Actuellement : <red><bold>Aucun"
+    click:
+      left:
+        - open_menu: { menu_id: link_select, context: { land: "{land}", type: "bans" } }
+  - id: back
+    positions: "18"
+    image: { asset: lands_back, fit: native }
+    title:
+      en: "<gray>Back"
+      fr: "<gray>Retour"
+    click:
+      left:
+        - open_previous_menu
+  - id: close
+    positions: "26"
+    image: { asset: lands_close, fit: native }
+    title:
+      en: "<red>Close"
+      fr: "<red>Fermer"
+    click:
+      left:
+        - close_menu

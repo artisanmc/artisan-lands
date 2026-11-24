@@ -1,0 +1,102 @@
+schema: menu/v1
+# A land's chunks on this server for Java players who loaded the resource pack: the module's
+# menus/chunks.yaml drawn with images. Same inputs, same clicks. The window is the image
+# lands_list_background (vanilla_texture: false): 28 chunks a page, the arrows on both sides.
+title:
+  - kind: background
+    asset_id: lands_list_background
+  - kind: textarea
+    value: { en: '{info[0].name} <#808080>></#808080> Chunk list', fr: '{info[0].name} <#808080>></#808080> Liste des tronçons' }
+    x: 88
+    y: 6
+    width: 168
+    line_height: 10
+    alignment: center
+size: 45
+vanilla_texture: false
+inputs:
+  - name: land
+    type: string
+  # The land, for its name in the title.
+  - name: info
+    type: list
+    source: { ref: "lands:land", params: { land: "{land}" } }
+  # The land's chunks on this server; empty unless the viewer may manage it.
+  - name: chunks
+    type: list
+    source: { ref: "lands:chunks", params: { land: "{land}" } }
+elements:
+  - id: chunks
+    positions: "1-7,10-16,19-25,28-34"
+    iterates: { source: chunks, alias: c }
+    material: DIRT
+    title:
+      en: "<dark_green><bold>Chunk"
+      fr: "<dark_green><bold>Tronçon"
+    lore:
+      en:
+        - "<white>Server: <green><bold>{c.server}"
+        - "<white>World: <green><bold>{c.world}"
+        - "<white>Chunk coordinates: X: <green><bold>{c.x} <white>Z: <green><bold>{c.z}"
+        - "<white>Block coordinates: X: <green><bold>{c.block_x} <white>Z: <green><bold>{c.block_z}"
+        - "<red>Click to remove."
+      fr:
+        - "<white>Serveur : <green><bold>{c.server}"
+        - "<white>Monde : <green><bold>{c.world}"
+        - "<white>Coordonnées (en chunk) : X: <green><bold>{c.x} <white>Z: <green><bold>{c.z}"
+        - "<white>Coordonnées (en bloc) : X: <green><bold>{c.block_x} <white>Z: <green><bold>{c.block_z}"
+        - "<red>Cliquez pour supprimer."
+    click:
+      left:
+        - lands:unclaim_chunk: { land: "{land}", world: "{c.world}", x: "{c.x}", z: "{c.z}" }
+        - set_arg: { arg: refresh, value: "{c.world}{c.x}{c.z}" }
+      right:
+        - lands:unclaim_chunk: { land: "{land}", world: "{c.world}", x: "{c.x}", z: "{c.z}" }
+        - set_arg: { arg: refresh, value: "{c.world}{c.x}{c.z}" }
+  # Two slots high each, on both sides of the list; greyed at its ends.
+  - id: previous
+    positions: "9,18"
+    states:
+      - if:
+          - pagination_at_first: chunks
+        image: { asset: lands_prev_off, fit: native }
+        title: " "
+    image: { asset: lands_prev, fit: native }
+    title:
+      en: "<yellow>Previous page"
+      fr: "<yellow>Page précédente"
+    click:
+      left:
+        - pagination_prev: chunks
+  - id: next
+    positions: "17,26"
+    states:
+      - if:
+          - pagination_at_last: chunks
+        image: { asset: lands_next_off, fit: native }
+        title: " "
+    image: { asset: lands_next, fit: native }
+    title:
+      en: "<yellow>Next page"
+      fr: "<yellow>Page suivante"
+    click:
+      left:
+        - pagination_next: chunks
+  - id: back
+    positions: "36"
+    image: { asset: lands_back, fit: native }
+    title:
+      en: "<gray>Back"
+      fr: "<gray>Retour"
+    click:
+      left:
+        - open_previous_menu
+  - id: close
+    positions: "44"
+    image: { asset: lands_close, fit: native }
+    title:
+      en: "<red>Close"
+      fr: "<red>Fermer"
+    click:
+      left:
+        - close_menu
