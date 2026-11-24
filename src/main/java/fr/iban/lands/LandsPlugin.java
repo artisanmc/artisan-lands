@@ -325,12 +325,28 @@ public final class LandsPlugin extends JavaPlugin {
 
     /**
      * The name in the column {@code server} of the chunks: {@code server-name} of config.yml, else
-     * Artisan's. Under MSLands it was Core's servername: the two must match for the old claims.
+     * Core's {@code servername} (MSLands wrote its chunks under it, and the config copied from
+     * MSLands has no {@code server-name}), else Artisan's. A name taken from Core is written to
+     * config.yml, so that it stays when Core goes.
      */
     private String resolveServerName(ArtisanAPI api) {
         String configured = getConfig().getString("server-name", "");
         if (configured != null && !configured.isBlank()) return configured.trim();
+        String core = coreServerName(getServer().getPluginManager().getPlugin("Core"));
+        if (core != null) {
+            getConfig().set("server-name", core);
+            saveConfig();
+            getLogger().info("server-name taken from Core's servername: '" + core + "' (written to config.yml).");
+            return core;
+        }
         return api.getNetwork().getServerName();
+    }
+
+    /** {@code servername} of the Core plugin's config, null without Core or without the key. */
+    static @Nullable String coreServerName(@Nullable org.bukkit.plugin.Plugin core) {
+        if (core == null) return null;
+        String name = core.getConfig().getString("servername", "");
+        return name == null || name.isBlank() ? null : name.trim();
     }
 
     /**

@@ -5,6 +5,8 @@ import fr.iban.lands.integration.claims.ClaimVisualization;
 import fr.iban.lands.utils.SeeClaims;
 import org.bukkit.Server;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -24,6 +26,7 @@ import java.util.logging.Logger;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -335,4 +338,19 @@ class LandsPluginTest {
     ) {
     }
 
+    @Test
+    void coreServerNameIsReadFromCoresConfig() {
+        assertNull(LandsPlugin.coreServerName(null));
+        assertEquals("Survie", LandsPlugin.coreServerName(coreWith("servername: \" Survie \"")));
+        assertNull(LandsPlugin.coreServerName(coreWith("servername: \"\"")));
+        assertNull(LandsPlugin.coreServerName(coreWith("other: x")));
+    }
+
+    private static Plugin coreWith(String yaml) {
+        YamlConfiguration config = new YamlConfiguration();
+        assertDoesNotThrow(() -> config.loadFromString(yaml));
+        Plugin core = mock(Plugin.class);
+        when(core.getConfig()).thenReturn(config);
+        return core;
+    }
 }
